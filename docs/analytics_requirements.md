@@ -81,3 +81,28 @@ The dashboard should eventually provide:
 - Risk scores
 - Interactive graph exploration
 - Filtering by account, transaction, and risk level
+
+## 8. Fraud Detection Thresholds
+
+| Fraud Pattern | Threshold |
+|---|---|
+| Shared IP | More than 10 transactions within 5 minutes |
+| Shared Device | More than 5 accounts using the same device |
+| Micro-transactions | More than 20 transactions to one account |
+| Circular Transfer | A → B → C → A |
+
+## 9. Analytics Priority
+
+### High Priority
+- Circular transfer detection
+- Shared IP detection
+- Shared device detection
+
+### Medium Priority
+- Micro-transaction detection
+- Suspicious cluster analysis
+
+### Future Analysis
+- Risk scoring
+- Graph centrality
+- Community detection
