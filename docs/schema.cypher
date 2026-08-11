@@ -1,23 +1,24 @@
 // FinGraph - Neo4j Graph Schema
+// Schema based on transactions_dataset_v2.csv
 
-// Constraints for unique IDs
-
-CREATE CONSTRAINT person_id_unique IF NOT EXISTS
-FOR (p:Person)
-REQUIRE p.person_id IS UNIQUE;
+// Unique constraints
 
 CREATE CONSTRAINT account_id_unique IF NOT EXISTS
 FOR (a:Account)
 REQUIRE a.account_id IS UNIQUE;
 
-CREATE CONSTRAINT bank_id_unique IF NOT EXISTS
-FOR (b:Bank)
-REQUIRE b.bank_id IS UNIQUE;
+CREATE CONSTRAINT card_no_unique IF NOT EXISTS
+FOR (c:Card)
+REQUIRE c.card_no IS UNIQUE;
 
-CREATE CONSTRAINT device_id_unique IF NOT EXISTS
-FOR (d:Device)
-REQUIRE d.device_id IS UNIQUE;
+CREATE CONSTRAINT txn_id_unique IF NOT EXISTS
+FOR (t:Transaction)
+REQUIRE t.txn_id IS UNIQUE;
 
-CREATE CONSTRAINT ip_address_unique IF NOT EXISTS
-FOR (ip:IPAddress)
-REQUIRE ip.ip_address IS UNIQUE;
+CREATE CONSTRAINT location_unique IF NOT EXISTS
+FOR (l:Location)
+REQUIRE l.city IS UNIQUE;
+
+CREATE CONSTRAINT merchant_type_unique IF NOT EXISTS
+FOR (m:Merchant)
+REQUIRE m.merchant_type IS UNIQUE;

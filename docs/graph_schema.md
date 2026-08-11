@@ -1,93 +1,189 @@
-# FinGraph – Graph Schema
+# FinGraph – Neo4j Graph Schema
 
 ## 1. Project Purpose
 
 FinGraph is a real-time fraud syndicate analytics project.
-The graph database represents people, accounts, banks, devices,
-IP addresses, and money transfers as connected data.
+
+The Neo4j graph represents customer accounts, cards, transactions,
+merchants, and transaction locations as connected data.
+
+The schema is designed according to the fields available in
+`transactions_dataset_v2.csv`.
+
+---
 
 ## 2. Nodes
 
-### Person
-Represents a customer/person associated with an account.
-
-Properties:
-- person_id
-- name
-
 ### Account
-Represents a bank account involved in transactions.
+
+Represents a customer bank account involved in transactions.
 
 Properties:
+
 - account_id
-- account_type
 
-### Bank
-Represents the bank associated with an account.
+Source field:
 
-Properties:
-- bank_id
-- bank_name
+- `customer_account`
 
-### Device
-Represents a device used to access accounts.
+---
 
-Properties:
-- device_id
+### Card
 
-### IPAddress
-Represents an IP address used by an account.
+Represents a card associated with an account.
 
 Properties:
-- ip_address
+
+- card_no
+
+Source field:
+
+- `card_no`
+
+---
+
+### Transaction
+
+Represents an individual financial transaction.
+
+Properties:
+
+- txn_id
+- txn_datetime
+- txn_amount
+- txn_currency
+- payment_channel
+- km_from_home
+- foreign_txn_flag
+- txn_count_past_hour
+- fraud_label
+- risk_index
+
+Source fields:
+
+- `txn_id`
+- `txn_datetime`
+- `txn_amount`
+- `txn_currency`
+- `payment_channel`
+- `km_from_home`
+- `foreign_txn_flag`
+- `txn_count_past_hour`
+- `fraud_label`
+- `risk_index`
+
+---
+
+### Merchant
+
+Represents the merchant category associated with a transaction.
+
+Properties:
+
+- merchant_type
+
+Source field:
+
+- `merchant_type`
+
+---
+
+### Location
+
+Represents the location where a transaction occurred.
+
+Properties:
+
+- city
+- country_code
+
+Source fields:
+
+- `city`
+- `country_code`
+
+---
 
 ## 3. Relationships
 
-### OWNS
-Person → Account
+### USES_CARD
 
-A person owns an account.
+Account → Card
 
-### HELD_AT
-Account → Bank
+Represents the card associated with an account.
 
-An account is held at a bank.
+---
 
-### TRANSFERRED_TO
-Account → Account
+### MADE
 
-Represents a money transfer from one account to another.
+Account → Transaction
 
-Properties:
-- transaction_id
-- amount
-- timestamp
+Represents a transaction made by an account.
 
-### USES_DEVICE
-Account → Device
+---
 
-An account is accessed using a device.
+### OCCURRED_IN
 
-### USES_IP
-Account → IPAddress
+Transaction → Location
 
-An account is associated with an IP address.
+Represents the location associated with a transaction.
 
-## 4. Fraud Patterns
+---
 
-The graph should support detection of:
+### AT_MERCHANT
+
+Transaction → Merchant
+
+Represents the merchant category associated with a transaction.
+
+---
+
+## 4. Basic Graph Structure
+
+Account → USES_CARD → Card
+
+Account → MADE → Transaction
+
+Transaction → OCCURRED_IN → Location
+
+Transaction → AT_MERCHANT → Merchant
+
+---
+
+## 5. Fraud Analysis Support
+
+The graph and transaction properties support analysis of:
+
+1. High transaction frequency using `txn_count_past_hour`.
+2. High-risk transactions using `risk_index`.
+3. Foreign transaction patterns using `foreign_txn_flag`.
+4. Suspicious transaction identification using `fraud_label`.
+5. High-value transaction analysis using `txn_amount`.
+6. Transaction behavior by payment channel.
+7. Transaction behavior by merchant type.
+8. Transaction behavior by location.
+
+---
+
+## 6. Dataset Limitations
+
+The current `transactions_dataset_v2.csv` does not contain:
+
+- person_id
+- bank_id
+- device_id
+- ip_address
+- sender_account
+- receiver_account
+
+Therefore, the following original fraud patterns cannot be directly implemented from this dataset:
 
 1. More than 10 transactions from the same IP within 5 minutes.
 2. More than 5 accounts using the same device.
-3. More than 20 micro-transactions to one account.
-4. Circular transfer pattern:
+3. Circular transfer pattern A → B → C → A.
 
-   Account A → Account B → Account C → Account A
+These patterns require additional fields or a different dataset.
 
-## 5. Basic Graph Structure
-
-Person → OWNS → Account
-Account → HELD_AT → Bank
-Account → TRANSFERRED_TO → Account
-Account → USES_DEVICE → Device
-Account → USES_IP → IPAddress
+The available transaction frequency, foreign transaction flag,
+risk index, transaction amount, and fraud label can instead be
+used for the current dataset's fraud analytics.
