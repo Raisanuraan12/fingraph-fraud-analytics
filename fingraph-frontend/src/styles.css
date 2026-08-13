@@ -1,0 +1,596 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0b1120;
+  color: #e5e7eb;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+/* Dashboard */
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+  background: #0b1120;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 250px;
+  min-height: 100vh;
+  padding: 28px 18px;
+  background: #111827;
+  border-right: 1px solid #1f2937;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  margin: 0 0 40px;
+  padding-left: 12px;
+  color: #38bdf8;
+  font-size: 28px;
+  font-weight: 800;
+}
+
+.sidebar nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar nav a {
+  padding: 13px 14px;
+  border-radius: 10px;
+  color: #9ca3af;
+  text-decoration: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.sidebar nav a:hover,
+.sidebar nav a.active {
+  color: #ffffff;
+  background: #1e3a5f;
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 15px 12px;
+  color: #64748b;
+  border-top: 1px solid #1f2937;
+}
+
+.sidebar-footer span,
+.sidebar-footer small {
+  display: block;
+}
+
+.sidebar-footer span {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.sidebar-footer small {
+  margin-top: 5px;
+}
+
+/* Main */
+.main-content {
+  flex: 1;
+  padding: 30px;
+  overflow-x: hidden;
+}
+
+/* Header */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 28px;
+  color: #f8fafc;
+}
+
+.topbar p {
+  margin: 7px 0 0;
+  color: #94a3b8;
+}
+
+.user-button {
+  padding: 10px 16px;
+  color: #e2e8f0;
+  background: #172033;
+  border: 1px solid #263449;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* Statistics */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.stat-card {
+  padding: 22px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card span {
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+.stat-card h2 {
+  margin: 12px 0 6px;
+  color: #f8fafc;
+  font-size: 27px;
+}
+
+.stat-card small {
+  color: #22c55e;
+}
+
+/* Dashboard panels */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 20px;
+}
+
+.panel {
+  min-height: 300px;
+  padding: 24px;
+  background: #111827;
+  border: 1px solid #1f2937;
+  border-radius: 14px;
+}
+
+.panel h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 19px;
+}
+
+.panel > p {
+  margin: 8px 0 20px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* Chart placeholder */
+.chart-placeholder {
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38bdf8;
+  background: linear-gradient(
+    135deg,
+    rgba(14, 165, 233, 0.08),
+    rgba(59, 130, 246, 0.02)
+  );
+  border: 1px dashed #28506d;
+  border-radius: 12px;
+}
+
+/* Risk */
+.risk-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 18px 0;
+  border-bottom: 1px solid #1f2937;
+}
+
+.risk-item:last-child {
+  border-bottom: none;
+}
+
+.risk-item strong {
+  color: #f8fafc;
+}
+
+/* Responsive */
+@media (max-width: 1000px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard {
+    display: block;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-height: auto;
+  }
+
+  .sidebar nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .sidebar-footer {
+    display: none;
+  }
+
+  .main-content {
+    padding: 20px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    gap: 15px;
+    flex-direction: column;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* ================================
+   DASHBOARD SECTIONS
+================================ */
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.dashboard-card {
+  background: #111827;
+  border: 1px solid #263449;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.card-header h2 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: 20px;
+}
+
+.card-header p {
+  margin: 6px 0 0;
+  color: #8b9bb4;
+  font-size: 14px;
+}
+
+.live-status {
+  color: #22c55e;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Fraud Activity Chart */
+
+.activity-chart {
+  height: 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.chart-bars {
+  height: 210px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 16px;
+  border-bottom: 1px solid #263449;
+  padding: 0 10px;
+}
+
+.bar {
+  width: 35px;
+  min-height: 20px;
+  background: linear-gradient(
+    180deg,
+    #38bdf8,
+    #2563eb
+  );
+  border-radius: 8px 8px 0 0;
+  transition: 0.3s ease;
+}
+
+.bar:hover {
+  background: linear-gradient(
+    180deg,
+    #60a5fa,
+    #38bdf8
+  );
+  transform: translateY(-5px);
+}
+
+.chart-labels {
+  display: flex;
+  justify-content: space-around;
+  color: #718096;
+  font-size: 11px;
+  margin-top: 12px;
+}
+
+/* Risk Overview */
+
+.risk-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.risk-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #0f172a;
+  border: 1px solid #263449;
+  border-radius: 10px;
+}
+
+.risk-item span {
+  color: #dbeafe;
+  font-size: 14px;
+}
+
+.risk-item strong {
+  color: #f8fafc;
+  font-size: 18px;
+}
+
+/* Responsive Design */
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-card {
+    padding: 18px;
+  }
+
+  .chart-bars {
+    gap: 8px;
+  }
+
+  .bar {
+    width: 24px;
+  }
+
+  .chart-labels {
+    font-size: 9px;
+  }
+}
+  /* ================================
+   DAY 4 - INVESTIGATIONS PAGE
+   ================================ */
+
+.page-container {
+  padding: 24px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.page-header h2 {
+  margin: 0 0 6px;
+  font-size: 26px;
+}
+
+.page-header p {
+  margin: 0;
+  opacity: 0.7;
+}
+
+.primary-btn {
+  border: none;
+  padding: 11px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  background: #1687d9;
+  color: white;
+}
+
+.primary-btn:hover {
+  opacity: 0.9;
+}
+
+/* Statistics */
+
+.investigation-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.info-card {
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(20, 45, 65, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.info-card span {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.info-card h3 {
+  margin: 10px 0 5px;
+  font-size: 28px;
+}
+
+.info-card small {
+  opacity: 0.6;
+}
+
+/* Investigation panel */
+
+.investigation-panel {
+  padding: 22px;
+  border-radius: 14px;
+  background: rgba(20, 45, 65, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.search-input {
+  width: 240px;
+  padding: 10px 13px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: #aaa;
+}
+
+/* Table */
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.table-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-container th,
+.table-container td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.table-container th {
+  font-size: 13px;
+  opacity: 0.65;
+}
+
+.table-container td {
+  font-size: 14px;
+}
+
+.table-container tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Risk badges */
+
+.risk-badge,
+.status-badge {
+  display: inline-block;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.risk-badge.high {
+  background: rgba(255, 70, 70, 0.15);
+  color: #ff6b6b;
+}
+
+.risk-badge.medium {
+  background: rgba(255, 180, 60, 0.15);
+  color: #ffb43c;
+}
+
+.risk-badge.low {
+  background: rgba(80, 210, 130, 0.15);
+  color: #50d282;
+}
+
+.status-badge {
+  background: rgba(22, 135, 217, 0.15);
+  color: #55b8ff;
+}
+
+/* Responsive */
+
+@media (max-width: 900px) {
+  .investigation-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+}
+}
