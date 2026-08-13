@@ -66,11 +66,46 @@ def get_stats():
 
 # Latest transactions API
 @app.get('/transactions')
-def get_transactions(limit: int = 10):
+def get_transactions(
+    page: int = 1,
+    limit: int = 10,
+    channel: str | None = None
+):
     try:
+        skip = (page - 1) * limit
+
         with driver.session() as session:
-            result = session.run(
+
+            if channel:
+                total_query = '''
+                MATCH (t:Transaction)
+                WHERE t.payment_channel = $channel
+                RETURN count(t) AS count
                 '''
+
+                data_query = '''
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+                WHERE t.payment_channel = $channel
+                RETURN
+                    t.txn_id AS txn_id,
+                    a.account_id AS account_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.payment_channel AS channel,
+                    t.fraud_label AS fraud_label,
+                    t.risk_index AS risk_index,
+                    t.txn_datetime AS txn_datetime
+                ORDER BY t.txn_datetime DESC
+                SKIP $skip
+                LIMIT $limit
+                '''
+            else:
+                total_query = '''
+                MATCH (t:Transaction)
+                RETURN count(t) AS count
+                '''
+
+                data_query = '''
                 MATCH (a:Account)-[:MADE]->(t:Transaction)
                 RETURN
                     t.txn_id AS txn_id,
@@ -82,50 +117,31 @@ def get_transactions(limit: int = 10):
                     t.risk_index AS risk_index,
                     t.txn_datetime AS txn_datetime
                 ORDER BY t.txn_datetime DESC
+                SKIP $skip
                 LIMIT $limit
-                ''',
-                limit=limit
+                '''
+
+            total = session.run(
+                total_query,
+                channel=channel
+            ).single()['count']
+
+            result = session.run(
+                data_query,
+                skip=skip,
+                limit=limit,
+                channel=channel
             )
 
             transactions = [dict(record) for record in result]
 
             return {
+                'page': page,
+                'limit': limit,
+                'channel': channel,
+                'total': total,
                 'count': len(transactions),
                 'transactions': transactions
-            }
-
-    except Exception as e:
-        return {'error': str(e)}
-
-
-# High risk alerts API
-@app.get('/high-risk')
-def get_high_risk(limit: int = 20):
-    try:
-        with driver.session() as session:
-            result = session.run(
-                '''
-                MATCH (a:Account)-[:MADE]->(t:Transaction)
-                WHERE t.risk_index >= 0.8
-                RETURN
-                    t.txn_id AS txn_id,
-                    a.account_id AS account_id,
-                    t.txn_amount AS amount,
-                    t.payment_channel AS channel,
-                    t.fraud_label AS fraud_label,
-                    t.risk_index AS risk_index,
-                    t.txn_datetime AS txn_datetime
-                ORDER BY t.risk_index DESC
-                LIMIT $limit
-                ''',
-                limit=limit
-            )
-
-            alerts = [dict(record) for record in result]
-
-            return {
-                'count': len(alerts),
-                'alerts': alerts
             }
 
     except Exception as e:
@@ -165,6 +181,82 @@ def get_fraud_summary():
                 'high_risk_transactions': high_risk,
                 'fraud_percentage': fraud_percentage,
                 'high_risk_percentage': high_risk_percentage
+            }
+
+    except Exception as e:
+        return {'error': str(e)}
+@app.get('/merchant-analytics')
+def get_merchant_analytics():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                '''
+                MATCH (t:Transaction)-[:AT_MERCHANT]->(m:Merchant)
+                RETURN
+                    m.merchant_type AS merchant_type,
+                    count(t) AS total_transactions,
+                    sum(CASE WHEN t.fraud_label <> 'normal' THEN 1 ELSE 0 END) AS suspicious_transactions
+                ORDER BY total_transactions DESC
+                '''
+            )
+
+            merchants = [dict(record) for record in result]
+
+            return {
+                'count': len(merchants),
+                'merchants': merchants
+            }
+
+    except Exception as e:
+        return {'error': str(e)}
+
+@app.get('/location-analytics')
+def get_location_analytics():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                '''
+                MATCH (t:Transaction)-[:OCCURRED_IN]->(l:Location)
+                RETURN
+                    l.city AS city,
+                    count(t) AS total_transactions,
+                    sum(CASE WHEN t.fraud_label <> 'normal' THEN 1 ELSE 0 END) AS suspicious_transactions
+                ORDER BY total_transactions DESC
+                '''
+            )
+
+            locations = [dict(record) for record in result]
+
+            return {
+                'count': len(locations),
+                'locations': locations
+            }
+
+    except Exception as e:
+        return {'error': str(e)}
+@app.get('/location-analytics')
+def get_location_analytics():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                '''
+                MATCH (t:Transaction)-[:IN_LOCATION]->(l:Location)
+                RETURN
+                    l.city AS city,
+                    count(t) AS total_transactions,
+                    sum(CASE WHEN t.fraud_label <> 'normal' THEN 1 ELSE 0 END) AS suspicious_transactions
+                ORDER BY total_transactions DESC
+                '''
+            )
+
+            locations = [dict(record) for record in result]
+
+            return {
+                'count': len(locations),
+                'locations': locations
             }
 
     except Exception as e:
