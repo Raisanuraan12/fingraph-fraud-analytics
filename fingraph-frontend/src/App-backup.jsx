@@ -1,11 +1,11 @@
-import { Link, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
 import Investigations from "./pages/Investigations";
 import FraudNetwork from "./pages/FraudNetwork";
 import Alerts from "./pages/Alerts";
 import Analytics from "./pages/Analytics";
-import Settings from "./pages/Setting";
+import Settings from "./pages/Settings";
 import {
   LineChart,
   Line,
@@ -26,22 +26,21 @@ const fraudData = [
   { time: "16:00", fraud: 42 }
 ];
 function App() {
-  const location = useLocation();
   return (
     <div className="dashboard">
 
       {/* Sidebar */}
       <aside className="sidebar">
         <h2 className="logo">FinGraph</h2>
-          <nav>
-  <Link to="/">📊 Dashboard</Link>
-  <Link to="/investigations">🔍 Investigations</Link>
-  <Link to="/fraud-network">⚛ Fraud Network</Link>
-  <Link to="/alerts">🚨 Alerts</Link>
-  <Link to="/analytics">▣ Analytics</Link>
-  <Link to="/settings">⚙ Settings</Link>
-</nav>
-        
+
+        <nav>
+          <a className="active">📊 Dashboard</a>
+          <a>🔍 Investigations</a>
+          <a>🕸️ Fraud Network</a>
+          <a>🚨 Alerts</a>
+          <a>📈 Analytics</a>
+          <a>⚙️ Settings</a>
+        </nav>
 
         <div className="sidebar-footer">
           <span>Frontend & UI</span>
@@ -51,8 +50,7 @@ function App() {
 
       {/* Main Content */}
       <main className="main-content">
-        {location.pathname === "/"? (
-          <>
+
         {/* Header */}
         <header className="topbar">
           <div>
@@ -96,7 +94,6 @@ function App() {
 
         {/* Dashboard Sections */}
 <section className="dashboard-grid">
-
 
   {/* Fraud Activity */}
   <div className="dashboard-card">
@@ -161,20 +158,6 @@ function App() {
   </div>
 
 </section>
-</>
-  ) : location.pathname === "/investigations" ? (
-    <Investigations />
-  ) : location.pathname === "/fraud-network" ? (
-    <FraudNetwork />
-  ) : location.pathname === "/alerts" ? (
-    <Alerts />
-  ) : location.pathname === "/analytics" ? (
-    <Analytics />
-  ) : location.pathname === "/settings" ? (
-    <Settings />
-  ) : (
-    <Dashboard />
-  )}
            
       </main>
     </div>
