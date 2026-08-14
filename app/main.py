@@ -261,3 +261,149 @@ def get_location_analytics():
 
     except Exception as e:
         return {'error': str(e)}
+
+@app.get('/account/{account_id}')
+def get_account_transactions(account_id: str, limit: int = 20):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                '''
+                MATCH (a:Account {account_id: $account_id})-[:MADE]->(t:Transaction)
+                RETURN
+                    a.account_id AS account_id,
+                    t.txn_id AS txn_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.payment_channel AS channel,
+                    t.fraud_label AS fraud_label,
+                    t.risk_index AS risk_index,
+                    t.txn_datetime AS txn_datetime
+                ORDER BY t.txn_datetime DESC
+                LIMIT $limit
+                ''',
+                account_id=account_id,
+                limit=limit
+            )
+
+            transactions = [dict(record) for record in result]
+
+            return {
+                'account_id': account_id,
+                'count': len(transactions),
+                'transactions': transactions
+            }
+
+    except Exception as e:
+        return {'error': str(e)}
+
+@app.get('/transaction/{txn_id}')
+def get_transaction(txn_id: str):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                '''
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+                WHERE t.txn_id = $txn_id
+                RETURN
+                    a.account_id AS account_id,
+                    t.txn_id AS txn_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.payment_channel AS channel,
+                    t.fraud_label AS fraud_label,
+                    t.risk_index AS risk_index,
+                    t.txn_datetime AS txn_datetime
+                LIMIT 1
+                ''',
+                txn_id=txn_id
+            )
+
+            record = result.single()
+
+            if not record:
+                return {'error': 'Transaction not found'}
+
+            return dict(record)
+
+    except Exception as e:
+        return {'error': str(e)}
+
+@app.get('/fraud-trend')
+def get_fraud_trend():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                '''
+                MATCH (t:Transaction)
+                WHERE t.fraud_label <> 'normal'
+                RETURN
+                    substring(t.txn_datetime, 0, 10) AS date,
+                    count(t) AS suspicious_transactions
+                ORDER BY date
+                '''
+            )
+
+            trend = [dict(record) for record in result]
+
+            return {
+                'count': len(trend),
+                'trend': trend
+            }
+
+    except Exception as e:
+        return {'error': str(e)}
+
+from fastapi.responses import StreamingResponse
+import csv
+import io
+
+@app.get('/export-transactions')
+def export_transactions(limit: int = 100):
+
+    with driver.session() as session:
+
+        result = session.run(
+            '''
+            MATCH (a:Account)-[:MADE]->(t:Transaction)
+            RETURN
+                a.account_id AS account_id,
+                t.txn_id AS txn_id,
+                t.txn_amount AS amount,
+                t.payment_channel AS channel,
+                t.fraud_label AS fraud_label,
+                t.risk_index AS risk_index,
+                t.txn_datetime AS txn_datetime
+            ORDER BY t.txn_datetime DESC
+            LIMIT $limit
+            ''',
+            limit=limit
+        )
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        writer.writerow([
+            'account_id',
+            'txn_id',
+            'amount',
+            'channel',
+            'fraud_label',
+            'risk_index',
+            'txn_datetime'
+        ])
+
+        for record in result:
+            writer.writerow(record.values())
+
+        output.seek(0)
+
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type='text/csv',
+            headers={
+                'Content-Disposition': 'attachment; filename=transactions.csv'
+            }
+        )
