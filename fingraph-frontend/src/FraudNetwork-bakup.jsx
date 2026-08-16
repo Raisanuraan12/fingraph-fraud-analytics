@@ -244,311 +244,128 @@ function FraudNetwork() {
 
           <div className="network-graph">
 
-           <svg
-  viewBox="0 0 900 600"
-  className="fraud-network-svg"
-  role="img"
-  aria-label="Fraud connection network"
->
-  <defs>
-    <linearGradient
-      id="networkBackground"
-      x1="0"
-      y1="0"
-      x2="1"
-      y2="1"
-    >
-      <stop offset="0%" stopColor="#0b1220" />
-      <stop offset="100%" stopColor="#111827" />
-    </linearGradient>
+            <svg
+              viewBox="0 0 900 600"
+              className="fraud-network-svg"
+            >
 
-    <filter
-      id="nodeGlow"
-      x="-50%"
-      y="-50%"
-      width="200%"
-      height="200%"
-    >
-      <feGaussianBlur
-        stdDeviation="5"
-        result="blur"
-      />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
+              {/* =========================
+                  CONNECTION LINES
+              ========================== */}
+              {connections.map((connection, index) => {
 
-    <pattern
-      id="networkGrid"
-      width="40"
-      height="40"
-      patternUnits="userSpaceOnUse"
-    >
-      <path
-        d="M 40 0 L 0 0 0 40"
-        fill="none"
-        stroke="#334155"
-        strokeWidth="1"
-        opacity="0.25"
-      />
-    </pattern>
-  </defs>
+                const fromNode = getNode(connection.from);
+                const toNode = getNode(connection.to);
 
-  {/* Network background */}
-  <rect
-    x="0"
-    y="0"
-    width="900"
-    height="600"
-    rx="18"
-    fill="url(#networkBackground)"
-  />
+                if (!fromNode || !toNode) {
+                  return null;
+                }
 
-  {/* Network grid */}
-  <rect
-    x="0"
-    y="0"
-    width="900"
-    height="600"
-    rx="18"
-    fill="url(#networkGrid)"
-  />
+                const isSearchMatch =
+                  search &&
+                  (
+                    fromNode.id
+                      .toLowerCase()
+                      .includes(search.toLowerCase()) ||
+                    fromNode.label
+                      .toLowerCase()
+                      .includes(search.toLowerCase()) ||
+                    toNode.id
+                      .toLowerCase()
+                      .includes(search.toLowerCase()) ||
+                    toNode.label
+                      .toLowerCase()
+                      .includes(search.toLowerCase())
+                  );
 
-  {/* Connection lines */}
-  {connections.map((connection, index) => {
-    const fromNode = getNode(connection.from);
-    const toNode = getNode(connection.to);
+                return (
+                  <g
+                    key={`${connection.from}-${connection.to}-${index}`}
+                    className={
+                      isSearchMatch
+                        ? "network-connection active"
+                        : "network-connection"
+                    }
+                  >
 
-    if (!fromNode || !toNode) {
-      return null;
-    }
+                    <line
+                      x1={fromNode.x}
+                      y1={fromNode.y}
+                      x2={toNode.x}
+                      y2={toNode.y}
+                    />
 
-    const searchText = search.toLowerCase();
+                  </g>
+                );
+              })}
 
-    const isSearchMatch =
-      searchText &&
-      (
-        fromNode.id.toLowerCase().includes(searchText) ||
-        fromNode.label.toLowerCase().includes(searchText) ||
-        toNode.id.toLowerCase().includes(searchText) ||
-        toNode.label.toLowerCase().includes(searchText)
-      );
+              {/* =========================
+                  NODES
+              ========================== */}
+              {nodes.map((node) => {
 
-    const isSelectedConnection =
-      selectedNode &&
-      (
-        connection.from === selectedNode.id ||
-        connection.to === selectedNode.id
-      );
+                const isVisible =
+                  search === "" ||
+                  filteredNodes.some(
+                    (item) => item.id === node.id
+                  );
 
-    return (
-      <g
-        key={`${connection.from}-${connection.to}-${index}`}
-      >
-        <line
-          x1={fromNode.x}
-          y1={fromNode.y}
-          x2={toNode.x}
-          y2={toNode.y}
-          stroke={
-            isSelectedConnection
-              ? "#38bdf8"
-              : isSearchMatch
-              ? "#facc15"
-              : "#475569"
-          }
-          strokeWidth={
-            isSelectedConnection || isSearchMatch
-              ? 5
-              : 2.5
-          }
-          strokeLinecap="round"
-          opacity={
-            search && !isSearchMatch
-              ? 0.25
-              : 0.85
-          }
-        />
+                const isSelected =
+                  selectedNode?.id === node.id;
 
-        {/* Connection direction point */}
-        <circle
-          cx={(fromNode.x + toNode.x) / 2}
-          cy={(fromNode.y + toNode.y) / 2}
-          r="4"
-          fill={
-            isSelectedConnection
-              ? "#38bdf8"
-              : "#64748b"
-          }
-          opacity="0.9"
-        />
-      </g>
-    );
-  })}
+                if (!isVisible) {
+                  return null;
+                }
 
-  {/* Nodes */}
-  {nodes.map((node) => {
-    const isVisible =
-      search === "" ||
-      filteredNodes.some(
-        (item) => item.id === node.id
-      );
+                return (
+                  <g
+                    key={node.id}
+                    className={`network-node ${getRiskClass(
+                      node.risk
+                    )} ${
+                      isSelected
+                        ? "selected"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      setSelectedNode(node)
+                    }
+                    style={{
+                      cursor: "pointer",
+                    }}
+                  >
 
-    const isSelected =
-      selectedNode?.id === node.id;
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={getRadius(node)}
+                    />
 
-    const isSearchMatch =
-      search &&
-      (
-        node.id
-          .toLowerCase()
-          .includes(search.toLowerCase()) ||
-        node.label
-          .toLowerCase()
-          .includes(search.toLowerCase()) ||
-        node.type
-          .toLowerCase()
-          .includes(search.toLowerCase()) ||
-        node.risk
-          .toLowerCase()
-          .includes(search.toLowerCase())
-      );
+                    <text
+                      x={node.x}
+                      y={node.y + 5}
+                      textAnchor="middle"
+                      className="network-node-text"
+                    >
+                      {node.type === "Customer"
+                        ? "👤"
+                        : "₹"}
+                    </text>
 
-    if (!isVisible) {
-      return null;
-    }
+                    <text
+                      x={node.x}
+                      y={node.y + 58}
+                      textAnchor="middle"
+                      className="network-node-label"
+                    >
+                      {node.label}
+                    </text>
 
-    let nodeColor = "#22c55e";
+                  </g>
+                );
+              })}
 
-    if (node.risk === "High") {
-      nodeColor = "#ef4444";
-    } else if (node.risk === "Medium") {
-      nodeColor = "#f59e0b";
-    }
-
-    if (node.type === "Transaction") {
-      nodeColor =
-        node.risk === "High"
-          ? "#f97316"
-          : node.risk === "Medium"
-          ? "#eab308"
-          : "#06b6d4";
-    }
-
-    return (
-      <g
-        key={node.id}
-        onClick={() => setSelectedNode(node)}
-        style={{
-          cursor: "pointer",
-          opacity:
-            search && !isSearchMatch
-              ? 0.35
-              : 1,
-        }}
-      >
-        {/* Selected node outer ring */}
-        {isSelected && (
-          <circle
-            cx={node.x}
-            cy={node.y}
-            r={node.type === "Transaction" ? 45 : 55}
-            fill="none"
-            stroke="#38bdf8"
-            strokeWidth="4"
-            opacity="0.9"
-            filter="url(#nodeGlow)"
-          />
-        )}
-
-        {/* Search highlight */}
-        {isSearchMatch && (
-          <circle
-            cx={node.x}
-            cy={node.y}
-            r={node.type === "Transaction" ? 42 : 50}
-            fill="none"
-            stroke="#facc15"
-            strokeWidth="3"
-            strokeDasharray="7 5"
-          />
-        )}
-
-        {/* Main node */}
-        <circle
-          cx={node.x}
-          cy={node.y}
-          r={getRadius(node)}
-          fill="#0f172a"
-          stroke={nodeColor}
-          strokeWidth="5"
-          filter={
-            isSelected
-              ? "url(#nodeGlow)"
-              : undefined
-          }
-        />
-
-        {/* Inner node */}
-        <circle
-          cx={node.x}
-          cy={node.y}
-          r={getRadius(node) - 9}
-          fill={nodeColor}
-          opacity="0.18"
-        />
-
-        {/* Node icon */}
-        <text
-          x={node.x}
-          y={node.y + 8}
-          textAnchor="middle"
-          fontSize="22"
-          fontWeight="700"
-          fill="#ffffff"
-        >
-          {node.type === "Customer" ? "A" : "₹"}
-        </text>
-
-        {/* Node label */}
-        <text
-          x={node.x}
-          y={node.y + 65}
-          textAnchor="middle"
-          fill="#f8fafc"
-          fontSize="16"
-          fontWeight="600"
-        >
-          {node.label}
-        </text>
-
-        {/* Node type */}
-        <text
-          x={node.x}
-          y={node.y + 84}
-          textAnchor="middle"
-          fill="#94a3b8"
-          fontSize="12"
-        >
-          {node.type}
-        </text>
-
-        {/* Risk label */}
-        <text
-          x={node.x}
-          y={node.y - 48}
-          textAnchor="middle"
-          fill={nodeColor}
-          fontSize="11"
-          fontWeight="700"
-        >
-          {node.risk.toUpperCase()} RISK
-        </text>
-      </g>
-    );
-  })}
-</svg> 
+            </svg>
 
           </div>
 
