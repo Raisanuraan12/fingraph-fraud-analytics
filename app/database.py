@@ -5,8 +5,8 @@ from neo4j import GraphDatabase
 load_dotenv()
 
 URI = os.getenv("NEO4J_URI")
-USERNAME = os.getenv("NEO4J_USERNAME")
-PASSWORD = os.getenv("NEO4J_PASSWORD")
+USERNAME = os.getenv("neo4j")
+PASSWORD = os.getenv("Sandip@123")
 
 driver = GraphDatabase.driver(
     URI,
