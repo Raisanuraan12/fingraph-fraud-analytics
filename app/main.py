@@ -1,7 +1,26 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 from app.database import driver
 
 app = FastAPI(title="FinGraph API")
+
+
+class LocationAnalytics(BaseModel):
+    city: str
+    total_transactions: int
+    suspicious_transactions: int
+
+
+class LocationAnalyticsResponse(BaseModel):
+    count: int
+    locations: list[LocationAnalytics]
+
+
+class StatsResponse(BaseModel):
+    total_accounts: int
+    total_transactions: int
+    fraud_transactions: int
+    high_risk_transactions: int
 
 
 @app.get("/")
@@ -29,11 +48,14 @@ def db_test():
             }
 
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 
 # Dashboard statistics API
-@app.get("/stats")
+@app.get("/stats", response_model=StatsResponse)
 def get_stats():
     try:
         with driver.session() as session:
@@ -62,7 +84,10 @@ def get_stats():
             }
 
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 # Latest transactions API
 @app.get('/transactions')
@@ -211,7 +236,7 @@ def get_merchant_analytics():
     except Exception as e:
         return {'error': str(e)}
 
-@app.get('/location-analytics')
+@app.get('/location-analytics', response_model=LocationAnalyticsResponse)
 def get_location_analytics():
     try:
         with driver.session() as session:
@@ -219,31 +244,6 @@ def get_location_analytics():
             result = session.run(
                 '''
                 MATCH (t:Transaction)-[:OCCURRED_IN]->(l:Location)
-                RETURN
-                    l.city AS city,
-                    count(t) AS total_transactions,
-                    sum(CASE WHEN t.fraud_label <> 'normal' THEN 1 ELSE 0 END) AS suspicious_transactions
-                ORDER BY total_transactions DESC
-                '''
-            )
-
-            locations = [dict(record) for record in result]
-
-            return {
-                'count': len(locations),
-                'locations': locations
-            }
-
-    except Exception as e:
-        return {'error': str(e)}
-@app.get('/location-analytics')
-def get_location_analytics():
-    try:
-        with driver.session() as session:
-
-            result = session.run(
-                '''
-                MATCH (t:Transaction)-[:IN_LOCATION]->(l:Location)
                 RETURN
                     l.city AS city,
                     count(t) AS total_transactions,
