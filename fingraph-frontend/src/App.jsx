@@ -5,7 +5,9 @@ import Investigations from "./pages/Investigations";
 import FraudNetwork from "./pages/FraudNetwork";
 import Alerts from "./pages/Alerts";
 import Analytics from "./pages/Analytics";
+import Transactions from "./pages/Transactions";
 import Settings from "./pages/Setting";
+
 import {
   LineChart,
   Line,
@@ -15,6 +17,7 @@ import {
   Tooltip,
   ResponsiveContainer
 } from "recharts";
+
 const fraudData = [
   { time: "09:00", fraud: 12 },
   { time: "10:00", fraud: 18 },
@@ -25,158 +28,344 @@ const fraudData = [
   { time: "15:00", fraud: 30 },
   { time: "16:00", fraud: 42 }
 ];
+
 function App() {
   const location = useLocation();
+
   return (
     <div className="dashboard">
 
-      {/* Sidebar */}
+      {/* =========================
+          SIDEBAR
+      ========================== */}
+
       <aside className="sidebar">
-        <h2 className="logo">FinGraph</h2>
-          <nav>
-  <Link to="/">📊 Dashboard</Link>
-  <Link to="/investigations">🔍 Investigations</Link>
-  <Link to="/fraud-network">⚛ Fraud Network</Link>
-  <Link to="/alerts">🚨 Alerts</Link>
-  <Link to="/analytics">▣ Analytics</Link>
-  <Link to="/settings">⚙ Settings</Link>
-</nav>
-        
+
+        <h2 className="logo">
+          FinGraph
+        </h2>
+
+        <nav>
+
+          <Link to="/">
+            📊 Dashboard
+          </Link>
+
+          <Link to="/investigations">
+            🔍 Investigations
+          </Link>
+
+          <Link to="/fraud-network">
+            ⚛ Fraud Network
+          </Link>
+
+          <Link to="/alerts">
+            🚨 Alerts
+          </Link>
+
+          <Link to="/analytics">
+            ▣ Analytics
+          </Link>
+
+          {/* DAY 7 - TRANSACTIONS */}
+          <Link to="/transactions">
+            💳 Transactions
+          </Link>
+
+          <Link to="/settings">
+            ⚙ Settings
+          </Link>
+
+        </nav>
 
         <div className="sidebar-footer">
           <span>Frontend & UI</span>
           <small>FinGraph Analytics</small>
         </div>
+
       </aside>
 
-      {/* Main Content */}
+      {/* =========================
+          MAIN CONTENT
+      ========================== */}
+
       <main className="main-content">
-        {location.pathname === "/"? (
+
+        {location.pathname === "/" ? (
+
           <>
-        {/* Header */}
-        <header className="topbar">
-          <div>
-            <h1>Fraud Analytics Dashboard</h1>
-            <p>Real-time financial fraud monitoring</p>
-          </div>
+            {/* =========================
+                DASHBOARD HEADER
+            ========================== */}
 
-          <button className="user-button">
-            👤 Analyst
-          </button>
-        </header>
+            <header className="topbar">
 
-        {/* Statistics */}
-        <section className="stats-grid">
+              <div>
+                <h1>
+                  Fraud Analytics Dashboard
+                </h1>
 
-          <div className="stat-card">
-            <span>🚨 Active Alerts</span>
-            <h2>24</h2>
-            <small>+12% today</small>
-          </div>
+                <p>
+                  Real-time financial fraud monitoring
+                </p>
+              </div>
 
-          <div className="stat-card">
-            <span>💳 Transactions</span>
-            <h2>12,840</h2>
-            <small>+8.4% today</small>
-          </div>
+              <button className="user-button">
+                👤 Analyst
+              </button>
 
-          <div className="stat-card">
-            <span>⚠️ Fraud Detected</span>
-            <h2>₹8.4L</h2>
-            <small>+5.2% today</small>
-          </div>
+            </header>
 
-          <div className="stat-card">
-            <span>🕸️ Suspicious Networks</span>
-            <h2>37</h2>
-            <small>3 new networks</small>
-          </div>
+            {/* =========================
+                DASHBOARD STATISTICS
+            ========================== */}
 
-        </section>
+            <section className="stats-grid">
 
-        {/* Dashboard Sections */}
-<section className="dashboard-grid">
+              <div className="stat-card">
+                <span>
+                  🚨 Active Alerts
+                </span>
 
+                <h2>24</h2>
 
-  {/* Fraud Activity */}
-  <div className="dashboard-card">
-    <div className="card-header">
-      <div>
-        <h2>Fraud Activity</h2>
-        <p>Real-time fraud detection trends</p>
-      </div>
-      <span className="live-status">● Live</span>
-    </div>
+                <small>
+                  +12% today
+                </small>
+              </div>
 
-    <div className="activity-chart">
-      <div className="chart-bars">
-        <div className="bar" style={{ height: "45%" }}></div>
-        <div className="bar" style={{ height: "65%" }}></div>
-        <div className="bar" style={{ height: "40%" }}></div>
-        <div className="bar" style={{ height: "80%" }}></div>
-        <div className="bar" style={{ height: "55%" }}></div>
-        <div className="bar" style={{ height: "90%" }}></div>
-        <div className="bar" style={{ height: "70%" }}></div>
-      </div>
+              <div className="stat-card">
+                <span>
+                  💳 Transactions
+                </span>
 
-      <div className="chart-labels">
-        <span>10 AM</span>
-        <span>11 AM</span>
-        <span>12 PM</span>
-        <span>1 PM</span>
-        <span>2 PM</span>
-        <span>3 PM</span>
-        <span>4 PM</span>
-      </div>
-    </div>
-  </div>
+                <h2>12,840</h2>
 
-  {/* Risk Overview */}
-  <div className="dashboard-card">
-    <div className="card-header">
-      <div>
-        <h2>Risk Overview</h2>
-        <p>Current transaction risk levels</p>
-      </div>
-    </div>
+                <small>
+                  +8.4% today
+                </small>
+              </div>
 
-    <div className="risk-list">
+              <div className="stat-card">
+                <span>
+                  ⚠️ Fraud Detected
+                </span>
 
-      <div className="risk-item">
-        <span>🔴 High Risk</span>
-        <strong>18%</strong>
-      </div>
+                <h2>₹8.4L</h2>
 
-      <div className="risk-item">
-        <span>🟡 Medium Risk</span>
-        <strong>32%</strong>
-      </div>
+                <small>
+                  +5.2% today
+                </small>
+              </div>
 
-      <div className="risk-item">
-        <span>🟢 Low Risk</span>
-        <strong>50%</strong>
-      </div>
+              <div className="stat-card">
+                <span>
+                  🕸️ Suspicious Networks
+                </span>
 
-    </div>
-  </div>
+                <h2>37</h2>
 
-</section>
-</>
-  ) : location.pathname === "/investigations" ? (
-    <Investigations />
-  ) : location.pathname === "/fraud-network" ? (
-    <FraudNetwork />
-  ) : location.pathname === "/alerts" ? (
-    <Alerts />
-  ) : location.pathname === "/analytics" ? (
-    <Analytics />
-  ) : location.pathname === "/settings" ? (
-    <Settings />
-  ) : (
-    <Dashboard />
-  )}
-           
+                <small>
+                  3 new networks
+                </small>
+              </div>
+
+            </section>
+
+            {/* =========================
+                DASHBOARD SECTIONS
+            ========================== */}
+
+            <section className="dashboard-grid">
+
+              {/* FRAUD ACTIVITY */}
+
+              <div className="dashboard-card">
+
+                <div className="card-header">
+
+                  <div>
+                    <h2>
+                      Fraud Activity
+                    </h2>
+
+                    <p>
+                      Real-time fraud detection trends
+                    </p>
+                  </div>
+
+                  <span className="live-status">
+                    ● Live
+                  </span>
+
+                </div>
+
+                <div className="activity-chart">
+
+                  <div className="chart-bars">
+
+                    <div
+                      className="bar"
+                      style={{ height: "45%" }}
+                    ></div>
+
+                    <div
+                      className="bar"
+                      style={{ height: "65%" }}
+                    ></div>
+
+                    <div
+                      className="bar"
+                      style={{ height: "40%" }}
+                    ></div>
+
+                    <div
+                      className="bar"
+                      style={{ height: "80%" }}
+                    ></div>
+
+                    <div
+                      className="bar"
+                      style={{ height: "55%" }}
+                    ></div>
+
+                    <div
+                      className="bar"
+                      style={{ height: "90%" }}
+                    ></div>
+
+                    <div
+                      className="bar"
+                      style={{ height: "70%" }}
+                    ></div>
+
+                  </div>
+
+                  <div className="chart-labels">
+
+                    <span>
+                      10 AM
+                    </span>
+
+                    <span>
+                      11 AM
+                    </span>
+
+                    <span>
+                      12 PM
+                    </span>
+
+                    <span>
+                      1 PM
+                    </span>
+
+                    <span>
+                      2 PM
+                    </span>
+
+                    <span>
+                      3 PM
+                    </span>
+
+                    <span>
+                      4 PM
+                    </span>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              {/* RISK OVERVIEW */}
+
+              <div className="dashboard-card">
+
+                <div className="card-header">
+
+                  <div>
+                    <h2>
+                      Risk Overview
+                    </h2>
+
+                    <p>
+                      Current transaction risk levels
+                    </p>
+                  </div>
+
+                </div>
+
+                <div className="risk-list">
+
+                  <div className="risk-item">
+                    <span>
+                      🔴 High Risk
+                    </span>
+
+                    <strong>
+                      18%
+                    </strong>
+                  </div>
+
+                  <div className="risk-item">
+                    <span>
+                      🟡 Medium Risk
+                    </span>
+
+                    <strong>
+                      32%
+                    </strong>
+                  </div>
+
+                  <div className="risk-item">
+                    <span>
+                      🟢 Low Risk
+                    </span>
+
+                    <strong>
+                      50%
+                    </strong>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </section>
+          </>
+
+        ) : location.pathname === "/investigations" ? (
+
+          <Investigations />
+
+        ) : location.pathname === "/fraud-network" ? (
+
+          <FraudNetwork />
+
+        ) : location.pathname === "/alerts" ? (
+
+          <Alerts />
+
+        ) : location.pathname === "/analytics" ? (
+
+          <Analytics />
+
+        ) : location.pathname === "/transactions" ? (
+
+          <Transactions />
+
+        ) : location.pathname === "/settings" ? (
+
+          <Settings />
+
+        ) : (
+
+          <Dashboard />
+
+        )}
+
       </main>
+
     </div>
   );
 }
