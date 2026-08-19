@@ -1,9 +1,16 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from app.database import driver
+from fastapi.responses import StreamingResponse
+import csv
+import io
 
 app = FastAPI(title="FinGraph API")
 
+
+# =========================
+# Pydantic Response Models
+# =========================
 
 class LocationAnalytics(BaseModel):
     city: str
@@ -23,23 +30,54 @@ class StatsResponse(BaseModel):
     high_risk_transactions: int
 
 
+# Day 8 - Fraud Analytics Models
+class FraudTransaction(BaseModel):
+    txn_id: str
+    account_id: str
+    amount: float
+    currency: str
+    channel: str
+    fraud_label: str
+    risk_index: float
+    txn_datetime: str
+
+
+class FraudAnalyticsResponse(BaseModel):
+    count: int
+    transactions: list[FraudTransaction]
+
+
+# =========================
+# Root API
+# =========================
+
 @app.get("/")
 def root():
     return {"message": "FinGraph Backend Running"}
 
+
+# =========================
+# Health Check
+# =========================
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
 
+# =========================
+# Database Test
+# =========================
+
 @app.get("/db-test")
 def db_test():
     try:
         with driver.session() as session:
+
             result = session.run(
                 "MATCH (a:Account) RETURN count(a) AS total_accounts"
             )
+
             record = result.single()
 
             return {
@@ -54,7 +92,10 @@ def db_test():
         )
 
 
-# Dashboard statistics API
+# =========================
+# Dashboard Statistics API
+# =========================
+
 @app.get("/stats", response_model=StatsResponse)
 def get_stats():
     try:
@@ -69,11 +110,19 @@ def get_stats():
             ).single()["count"]
 
             fraud = session.run(
-                "MATCH (t:Transaction) WHERE t.fraud_label <> 'normal' RETURN count(t) AS count"
+                """
+                MATCH (t:Transaction)
+                WHERE t.fraud_label <> 'normal'
+                RETURN count(t) AS count
+                """
             ).single()["count"]
 
             high_risk = session.run(
-                "MATCH (t:Transaction) WHERE t.risk_index >= 0.8 RETURN count(t) AS count"
+                """
+                MATCH (t:Transaction)
+                WHERE t.risk_index >= 0.8
+                RETURN count(t) AS count
+                """
             ).single()["count"]
 
             return {
@@ -89,8 +138,12 @@ def get_stats():
             detail=str(e)
         )
 
-# Latest transactions API
-@app.get('/transactions')
+
+# =========================
+# Latest Transactions API
+# =========================
+
+@app.get("/transactions")
 def get_transactions(
     page: int = 1,
     limit: int = 10,
@@ -102,13 +155,14 @@ def get_transactions(
         with driver.session() as session:
 
             if channel:
-                total_query = '''
+
+                total_query = """
                 MATCH (t:Transaction)
                 WHERE t.payment_channel = $channel
                 RETURN count(t) AS count
-                '''
+                """
 
-                data_query = '''
+                data_query = """
                 MATCH (a:Account)-[:MADE]->(t:Transaction)
                 WHERE t.payment_channel = $channel
                 RETURN
@@ -123,14 +177,16 @@ def get_transactions(
                 ORDER BY t.txn_datetime DESC
                 SKIP $skip
                 LIMIT $limit
-                '''
+                """
+
             else:
-                total_query = '''
+
+                total_query = """
                 MATCH (t:Transaction)
                 RETURN count(t) AS count
-                '''
+                """
 
-                data_query = '''
+                data_query = """
                 MATCH (a:Account)-[:MADE]->(t:Transaction)
                 RETURN
                     t.txn_id AS txn_id,
@@ -144,12 +200,12 @@ def get_transactions(
                 ORDER BY t.txn_datetime DESC
                 SKIP $skip
                 LIMIT $limit
-                '''
+                """
 
             total = session.run(
                 total_query,
                 channel=channel
-            ).single()['count']
+            ).single()["count"]
 
             result = session.run(
                 data_query,
@@ -161,115 +217,218 @@ def get_transactions(
             transactions = [dict(record) for record in result]
 
             return {
-                'page': page,
-                'limit': limit,
-                'channel': channel,
-                'total': total,
-                'count': len(transactions),
-                'transactions': transactions
+                "page": page,
+                "limit": limit,
+                "channel": channel,
+                "total": total,
+                "count": len(transactions),
+                "transactions": transactions
             }
 
     except Exception as e:
-        return {'error': str(e)}
+        return {"error": str(e)}
 
-@app.get('/fraud-summary')
+
+# =========================
+# Fraud Summary API
+# =========================
+
+@app.get("/fraud-summary")
 def get_fraud_summary():
     try:
         with driver.session() as session:
 
             total = session.run(
-                'MATCH (t:Transaction) RETURN count(t) AS count'
-            ).single()['count']
+                "MATCH (t:Transaction) RETURN count(t) AS count"
+            ).single()["count"]
 
             suspicious = session.run(
-                '''
+                """
                 MATCH (t:Transaction)
                 WHERE t.fraud_label <> 'normal'
                 RETURN count(t) AS count
-                '''
-            ).single()['count']
+                """
+            ).single()["count"]
 
             high_risk = session.run(
-                '''
+                """
                 MATCH (t:Transaction)
                 WHERE t.risk_index >= 0.8
                 RETURN count(t) AS count
-                '''
-            ).single()['count']
+                """
+            ).single()["count"]
 
-            fraud_percentage = round((suspicious / total) * 100, 2) if total else 0
-            high_risk_percentage = round((high_risk / total) * 100, 2) if total else 0
+            fraud_percentage = (
+                round((suspicious / total) * 100, 2)
+                if total else 0
+            )
+
+            high_risk_percentage = (
+                round((high_risk / total) * 100, 2)
+                if total else 0
+            )
 
             return {
-                'total_transactions': total,
-                'suspicious_transactions': suspicious,
-                'high_risk_transactions': high_risk,
-                'fraud_percentage': fraud_percentage,
-                'high_risk_percentage': high_risk_percentage
+                "total_transactions": total,
+                "suspicious_transactions": suspicious,
+                "high_risk_transactions": high_risk,
+                "fraud_percentage": fraud_percentage,
+                "high_risk_percentage": high_risk_percentage
             }
 
     except Exception as e:
-        return {'error': str(e)}
-@app.get('/merchant-analytics')
+        return {"error": str(e)}
+
+
+# =========================
+# Day 8 - Fraud Analytics API
+# =========================
+
+@app.get(
+    "/fraud-analytics",
+    response_model=FraudAnalyticsResponse
+)
+def get_fraud_analytics(
+    limit: int = 20,
+    min_risk: float = 0.0
+):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+                WHERE t.fraud_label <> 'normal'
+                  AND t.risk_index >= $min_risk
+
+                RETURN
+                    t.txn_id AS txn_id,
+                    a.account_id AS account_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.payment_channel AS channel,
+                    t.fraud_label AS fraud_label,
+                    t.risk_index AS risk_index,
+                    t.txn_datetime AS txn_datetime
+
+                ORDER BY t.risk_index DESC
+                LIMIT $limit
+                """,
+                min_risk=min_risk,
+                limit=limit
+            )
+
+            transactions = [dict(record) for record in result]
+
+            return {
+                "count": len(transactions),
+                "transactions": transactions
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+# =========================
+# Merchant Analytics API
+# =========================
+
+@app.get("/merchant-analytics")
 def get_merchant_analytics():
     try:
         with driver.session() as session:
 
             result = session.run(
-                '''
+                """
                 MATCH (t:Transaction)-[:AT_MERCHANT]->(m:Merchant)
+
                 RETURN
                     m.merchant_type AS merchant_type,
                     count(t) AS total_transactions,
-                    sum(CASE WHEN t.fraud_label <> 'normal' THEN 1 ELSE 0 END) AS suspicious_transactions
+                    sum(
+                        CASE
+                            WHEN t.fraud_label <> 'normal'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS suspicious_transactions
+
                 ORDER BY total_transactions DESC
-                '''
+                """
             )
 
             merchants = [dict(record) for record in result]
 
             return {
-                'count': len(merchants),
-                'merchants': merchants
+                "count": len(merchants),
+                "merchants": merchants
             }
 
     except Exception as e:
-        return {'error': str(e)}
+        return {"error": str(e)}
 
-@app.get('/location-analytics', response_model=LocationAnalyticsResponse)
+
+# =========================
+# Location Analytics API
+# =========================
+
+@app.get(
+    "/location-analytics",
+    response_model=LocationAnalyticsResponse
+)
 def get_location_analytics():
     try:
         with driver.session() as session:
 
             result = session.run(
-                '''
+                """
                 MATCH (t:Transaction)-[:OCCURRED_IN]->(l:Location)
+
                 RETURN
                     l.city AS city,
                     count(t) AS total_transactions,
-                    sum(CASE WHEN t.fraud_label <> 'normal' THEN 1 ELSE 0 END) AS suspicious_transactions
+                    sum(
+                        CASE
+                            WHEN t.fraud_label <> 'normal'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS suspicious_transactions
+
                 ORDER BY total_transactions DESC
-                '''
+                """
             )
 
             locations = [dict(record) for record in result]
 
             return {
-                'count': len(locations),
-                'locations': locations
+                "count": len(locations),
+                "locations": locations
             }
 
     except Exception as e:
-        return {'error': str(e)}
+        return {"error": str(e)}
 
-@app.get('/account/{account_id}')
-def get_account_transactions(account_id: str, limit: int = 20):
+
+# =========================
+# Account Transactions API
+# =========================
+
+@app.get("/account/{account_id}")
+def get_account_transactions(
+    account_id: str,
+    limit: int = 20
+):
     try:
         with driver.session() as session:
 
             result = session.run(
-                '''
+                """
                 MATCH (a:Account {account_id: $account_id})-[:MADE]->(t:Transaction)
+
                 RETURN
                     a.account_id AS account_id,
                     t.txn_id AS txn_id,
@@ -279,9 +438,10 @@ def get_account_transactions(account_id: str, limit: int = 20):
                     t.fraud_label AS fraud_label,
                     t.risk_index AS risk_index,
                     t.txn_datetime AS txn_datetime
+
                 ORDER BY t.txn_datetime DESC
                 LIMIT $limit
-                ''',
+                """,
                 account_id=account_id,
                 limit=limit
             )
@@ -289,23 +449,30 @@ def get_account_transactions(account_id: str, limit: int = 20):
             transactions = [dict(record) for record in result]
 
             return {
-                'account_id': account_id,
-                'count': len(transactions),
-                'transactions': transactions
+                "account_id": account_id,
+                "count": len(transactions),
+                "transactions": transactions
             }
 
     except Exception as e:
-        return {'error': str(e)}
+        return {"error": str(e)}
 
-@app.get('/transaction/{txn_id}')
+
+# =========================
+# Single Transaction API
+# =========================
+
+@app.get("/transaction/{txn_id}")
 def get_transaction(txn_id: str):
     try:
         with driver.session() as session:
 
             result = session.run(
-                '''
+                """
                 MATCH (a:Account)-[:MADE]->(t:Transaction)
+
                 WHERE t.txn_id = $txn_id
+
                 RETURN
                     a.account_id AS account_id,
                     t.txn_id AS txn_id,
@@ -315,59 +482,70 @@ def get_transaction(txn_id: str):
                     t.fraud_label AS fraud_label,
                     t.risk_index AS risk_index,
                     t.txn_datetime AS txn_datetime
+
                 LIMIT 1
-                ''',
+                """,
                 txn_id=txn_id
             )
 
             record = result.single()
 
             if not record:
-                return {'error': 'Transaction not found'}
+                return {"error": "Transaction not found"}
 
             return dict(record)
 
     except Exception as e:
-        return {'error': str(e)}
+        return {"error": str(e)}
 
-@app.get('/fraud-trend')
+
+# =========================
+# Fraud Trend API
+# =========================
+
+@app.get("/fraud-trend")
 def get_fraud_trend():
     try:
         with driver.session() as session:
 
             result = session.run(
-                '''
+                """
                 MATCH (t:Transaction)
+
                 WHERE t.fraud_label <> 'normal'
+
                 RETURN
                     substring(t.txn_datetime, 0, 10) AS date,
                     count(t) AS suspicious_transactions
+
                 ORDER BY date
-                '''
+                """
             )
 
             trend = [dict(record) for record in result]
 
             return {
-                'count': len(trend),
-                'trend': trend
+                "count": len(trend),
+                "trend": trend
             }
 
     except Exception as e:
-        return {'error': str(e)}
+        return {"error": str(e)}
 
-from fastapi.responses import StreamingResponse
-import csv
-import io
 
-@app.get('/export-transactions')
+# =========================
+# CSV Export API
+# =========================
+
+@app.get("/export-transactions")
 def export_transactions(limit: int = 100):
 
     with driver.session() as session:
 
         result = session.run(
-            '''
+            """
             MATCH (a:Account)-[:MADE]->(t:Transaction)
+
             RETURN
                 a.account_id AS account_id,
                 t.txn_id AS txn_id,
@@ -376,9 +554,11 @@ def export_transactions(limit: int = 100):
                 t.fraud_label AS fraud_label,
                 t.risk_index AS risk_index,
                 t.txn_datetime AS txn_datetime
+
             ORDER BY t.txn_datetime DESC
+
             LIMIT $limit
-            ''',
+            """,
             limit=limit
         )
 
@@ -386,13 +566,13 @@ def export_transactions(limit: int = 100):
         writer = csv.writer(output)
 
         writer.writerow([
-            'account_id',
-            'txn_id',
-            'amount',
-            'channel',
-            'fraud_label',
-            'risk_index',
-            'txn_datetime'
+            "account_id",
+            "txn_id",
+            "amount",
+            "channel",
+            "fraud_label",
+            "risk_index",
+            "txn_datetime"
         ])
 
         for record in result:
@@ -402,8 +582,9 @@ def export_transactions(limit: int = 100):
 
         return StreamingResponse(
             iter([output.getvalue()]),
-            media_type='text/csv',
+            media_type="text/csv",
             headers={
-                'Content-Disposition': 'attachment; filename=transactions.csv'
+                "Content-Disposition":
+                    "attachment; filename=transactions.csv"
             }
         )
