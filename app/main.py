@@ -281,6 +281,24 @@ def get_fraud_summary():
 
 
 # =========================
+# Day 9 - Fraud Breakdown Models
+# =========================
+
+class FraudChannelBreakdown(BaseModel):
+    channel: str
+    total_transactions: int
+    suspicious_transactions: int
+    fraud_percentage: float
+    average_risk: float
+    highest_risk: float
+
+
+class FraudBreakdownResponse(BaseModel):
+    count: int
+    channels: list[FraudChannelBreakdown]
+
+
+# =========================
 # Day 8 - Fraud Analytics API
 # =========================
 
@@ -332,6 +350,65 @@ def get_fraud_analytics(
         )
 
 
+# =========================
+# Day 9 - Fraud Breakdown API
+# =========================
+
+@app.get(
+    "/fraud-breakdown",
+    response_model=FraudBreakdownResponse
+)
+def get_fraud_breakdown():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (t:Transaction)
+
+                WITH
+                    t.payment_channel AS channel,
+                    count(t) AS total_transactions,
+                    sum(
+                        CASE
+                            WHEN t.fraud_label <> 'normal'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS suspicious_transactions,
+                    avg(t.risk_index) AS average_risk,
+                    max(t.risk_index) AS highest_risk
+
+                RETURN
+                    channel,
+                    total_transactions,
+                    suspicious_transactions,
+                    round(
+                        (toFloat(suspicious_transactions) /
+                        total_transactions) * 100,
+                        2
+                    ) AS fraud_percentage,
+                    round(average_risk, 3) AS average_risk,
+                    round(highest_risk, 3) AS highest_risk
+
+                ORDER BY fraud_percentage DESC
+                """
+            )
+
+            channels = [dict(record) for record in result]
+
+            return {
+                "count": len(channels),
+                "channels": channels
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+    
+    
 # =========================
 # Merchant Analytics API
 # =========================
