@@ -8,6 +8,7 @@ import Analytics from "./pages/Analytics";
 import Transactions from "./pages/Transactions";
 import Settings from "./pages/Setting";
 
+
 import {
   LineChart,
   Line,
@@ -70,6 +71,9 @@ function App() {
           {/* DAY 7 - TRANSACTIONS */}
           <Link to="/transactions">
             💳 Transactions
+          </Link>
+          <Link to="/account-investigation">
+          👤 Account Investigation
           </Link>
 
           <Link to="/settings">
