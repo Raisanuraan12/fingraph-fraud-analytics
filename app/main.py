@@ -30,6 +30,17 @@ class StatsResponse(BaseModel):
     high_risk_transactions: int
 
 
+class RiskDistributionItem(BaseModel):
+    risk_level: str
+    transaction_count: int
+    percentage: float
+
+
+class RiskDistributionResponse(BaseModel):
+    total_transactions: int
+    distribution: list[RiskDistributionItem]
+
+
 # Day 8 - Fraud Analytics Models
 class FraudTransaction(BaseModel):
     txn_id: str
@@ -400,6 +411,98 @@ def get_fraud_breakdown():
             return {
                 "count": len(channels),
                 "channels": channels
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+# =========================
+# Day 10 - Risk Distribution API
+# =========================
+
+@app.get(
+    "/risk-distribution",
+    response_model=RiskDistributionResponse
+)
+def get_risk_distribution():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (t:Transaction)
+
+                WITH
+                    count(t) AS total_transactions,
+                    sum(
+                        CASE
+                            WHEN t.risk_index < 0.4
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS low_risk,
+                    sum(
+                        CASE
+                            WHEN t.risk_index >= 0.4
+                            AND t.risk_index < 0.8
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS medium_risk,
+                    sum(
+                        CASE
+                            WHEN t.risk_index >= 0.8
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS high_risk
+
+                RETURN
+                    total_transactions,
+                    low_risk,
+                    medium_risk,
+                    high_risk
+                """
+            )
+
+            record = result.single()
+
+            total = record["total_transactions"]
+            low = record["low_risk"]
+            medium = record["medium_risk"]
+            high = record["high_risk"]
+
+            distribution = [
+                {
+                    "risk_level": "Low Risk",
+                    "transaction_count": low,
+                    "percentage": round(
+                        (low / total) * 100, 2
+                    ) if total else 0
+                },
+                {
+                    "risk_level": "Medium Risk",
+                    "transaction_count": medium,
+                    "percentage": round(
+                        (medium / total) * 100, 2
+                    ) if total else 0
+                },
+                {
+                    "risk_level": "High Risk",
+                    "transaction_count": high,
+                    "percentage": round(
+                        (high / total) * 100, 2
+                    ) if total else 0
+                }
+            ]
+
+            return {
+                "total_transactions": total,
+                "distribution": distribution
             }
 
     except Exception as e:
