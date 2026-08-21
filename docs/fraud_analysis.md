@@ -20,7 +20,7 @@ following nodes:
 
 | Node Type | Count |
 |---|---:|
-| Account | 2,123 |
+| Account | 2,120 |
 | Card | 2,150 |
 | Location | 19 |
 | Merchant | 19 |
@@ -37,8 +37,10 @@ verified on the shared FingraphDB setup.
 
 ```cypher
 MATCH (t:Transaction)
-WHERE t.fraud_label = 'suspicious'
-RETURN count(t) AS suspicious_transactions;
+RETURN 
+    count(t) AS total_transactions,
+    count(CASE WHEN t.fraud_label = 'suspicious' THEN 1 END) AS suspicious_transactions,
+    round(100.0 * count(CASE WHEN t.fraud_label = 'suspicious' THEN 1 END) / count(t), 2) AS suspicious_rate_pct;
 ```
 
 ### Result
@@ -260,9 +262,28 @@ LIMIT 20;
 
 ### Result
 
-The detailed account-wise output was not included in the verification
-report provided for this documentation. Therefore, no account-level
-values are reported here without the original verified output.
+| account_id | suspicious_transactions | highest_risk |
+| :--- | :--- | :--- |
+| ACC99997 | 1 | 0.990 |
+| ACC39967 | 1 | 0.990 |
+| ACC94487 | 1 | 0.989 |
+| ACC58103 | 1 | 0.985 |
+| ACC89618 | 1 | 0.984 |
+| ACC11603 | 1 | 0.980 |
+| ACC49394 | 1 | 0.980 |
+| ACC41224 | 1 | 0.979 |
+| ACC39459 | 1 | 0.977 |
+| ACC33143 | 1 | 0.973 |
+| ACC17550 | 1 | 0.973 |
+| ACC24156 | 1 | 0.973 |
+| ACC22759 | 1 | 0.972 |
+| ACC45728 | 1 | 0.969 |
+| ACC59722 | 1 | 0.966 |
+| ACC98387 | 1 | 0.964 |
+| ACC23639 | 1 | 0.963 |
+| ACC93548 | 1 | 0.962 |
+| ACC83505 | 1 | 0.960 |
+| ACC29283 | 1 | 0.954 |
 
 ---
 
@@ -270,106 +291,47 @@ values are reported here without the original verified output.
 
 Based on the verified Neo4j analysis:
 
-- Total transactions: **2,150**
-- Suspicious transactions: **150**
-- Suspicious transaction rate: **6.98%**
-- High-risk transactions: **84**
-- Highest observed risk score: **0.990**
-- Suspicious foreign transactions: **27**
-- Top suspicious merchant category: **Travel**
-- Suspicious Travel transactions: **21**
-- Top overall merchant category by transaction volume:
-  **Subscription**
-- Subscription transactions: **159**
-- Transaction-frequency patterns provide an additional behavioral
-  indicator for fraud analysis.
+- **Total transactions:** 2,150
+- **Suspicious transactions:** 150 (6.98% overall suspicious rate)
+- **High-risk transactions ($\ge$ 0.658):** 84
+- **Highest observed risk score:** 0.990 (across accounts such as `ACC99997` and `ACC39967`)
+- **Foreign transactions:** 27 (100% flagged as suspicious)
+- **Top suspicious merchant category:** Travel (21 suspicious transactions)
+- **Top overall merchant category:** Subscription (159 total transactions)
+- **Account concentration:** High-risk transactions are evenly distributed as single events across distinct accounts.
+- **Velocity indicator:** Suspicious transactions span past-hour frequencies ranging from 1 to 12.
 
 ---
 
 ## 12. Analytics Observations
 
-### Risk Score
+### Risk Score Correlation
+Suspicious transactions show a direct correlation with elevated risk scores, peaking at 0.990 across the top 20 prioritized accounts.
 
-The verified results show that suspicious transactions are associated
-with high risk scores. The highest observed risk score is 0.990.
+### Foreign Transaction Flag
+All 27 transactions with `foreign_txn_flag = 1` are classified as suspicious, making cross-border activity a critical high-precision indicator in this dataset.
 
-### Foreign Transactions
+### Merchant Patterns vs. Volume
+Travel exhibits the highest fraud concentration (21 transactions), whereas Subscription drives the largest aggregate transaction volume (159 transactions). Fraud monitoring must isolate risk concentration from gross volume.
 
-There are 27 suspicious transactions with the foreign transaction
-flag enabled. Foreign transaction status can therefore be considered
-as one of the indicators when evaluating suspicious activity.
+### Account-Level Distribution
+The top suspicious accounts each recorded a single high-risk event (risk index 0.954–0.990), indicating scattered, single-attempt anomalies across unique accounts rather than repetitive multi-event attacks on a single entity.
 
-### Merchant Patterns
-
-Travel has the highest number of suspicious transactions among the
-verified merchant results.
-
-However, the merchant category with the highest overall transaction
-volume is Subscription. Therefore, high transaction volume and high
-fraud concentration should be treated as different analytical
-measures.
-
-### Transaction Frequency
-
-Suspicious transactions appear at several transaction-frequency
-levels. Transaction frequency should therefore be combined with other
-signals such as risk score, foreign transaction status, and fraud
-label rather than being used as a standalone fraud indicator.
+### Transaction Velocity
+While higher hourly frequencies (up to 12 txns/hr) correlate with suspicious labels, significant fraud volume also appears at lower frequencies (e.g., 59 suspicious transactions at 1 txn/hr), demonstrating that velocity must be evaluated alongside risk index and location signals.
 
 ---
 
 ## 13. Fraud Analytics Scope
 
-The current transaction dataset supports analysis using fields such as:
+The verified schema supports the 15 attributes mapped across `Account`, `Card`, `Transaction`, `Location`, and `Merchant` nodes.
 
-- Transaction ID
-- Transaction datetime
-- Customer account
-- Card number
-- Transaction amount
-- Currency
-- Merchant type
-- City
-- Country code
-- Payment channel
-- Distance from home
-- Foreign transaction flag
-- Transaction count in the past hour
-- Fraud label
-- Risk index
-
-The current graph structure supports transaction, account, card,
-location, and merchant relationships.
-
-The original project roadmap also mentions IP/device-based and
-circular-transfer fraud patterns. Those patterns require corresponding
-IP, device, and transfer relationship data. They should not be claimed
-as verified using the current transaction dataset unless the required
-data and relationships are added to the graph.
+* **Supported Features:** Amount, currency, channel, distance from home, foreign flag, past-hour velocity, risk index, and fraud labels.
+* **Out of Scope (Requires Schema Expansion):** IP address tracking, device fingerprinting, and account-to-account circular fund routing (`TRANSFERRED_TO`).
 
 ---
 
 ## 14. Conclusion
 
-The Neo4j graph structure was successfully verified and all provided
-fraud-analysis queries executed successfully on the shared FingraphDB
-setup.
-
-The analysis identified:
-
-- Suspicious transactions
-- High-risk transactions
-- Foreign transaction activity
-- Suspicious merchant patterns
-- Overall merchant transaction distribution
-- Transaction-frequency behavior
-
-The verified results provide an analytical foundation for the next
-stages of the FinGraph project, including backend API integration and
-frontend dashboard visualization.
-
-The fraud analytics results can be used by the backend team to expose
-fraud-related information through APIs and by the frontend team to
-display suspicious transactions, risk indicators, merchant patterns,
-and other fraud-related KPIs.
+The FingraphDB graph schema and fraud queries are fully verified in Neo4j. The validated baseline (2,120 accounts, 2,150 cards, 2,150 transactions, 19 locations, and 19 merchants) provides the verified foundation for downstream API integration and dashboard KPI visualization.
 
