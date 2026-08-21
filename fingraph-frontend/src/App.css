@@ -1080,3 +1080,365 @@
     overflow-x: auto;
   }
 }
+/* =========================================
+   DAY 10 - ACCOUNT INVESTIGATION
+========================================= */
+
+.account-panel {
+  margin-top: 20px;
+  overflow: hidden;
+}
+
+.account-table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.account-table-container table {
+  width: 100%;
+  min-width: 1050px;
+  border-collapse: collapse;
+}
+
+.account-table-container th,
+.account-table-container td {
+  padding: 16px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.account-table-container th {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.account-table-container td {
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.account-table-container tbody tr {
+  transition: background 0.2s ease;
+}
+
+.account-table-container tbody tr:hover {
+  background: rgba(59, 130, 246, 0.06);
+}
+
+.account-table-container td strong {
+  color: #e2e8f0;
+}
+
+/* =========================================
+   ACCOUNT NAME
+========================================= */
+
+.account-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.account-avatar {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  font-size: 16px;
+}
+
+/* =========================================
+   ACCOUNT STATUS
+========================================= */
+
+.account-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.account-status.active {
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.account-status.review {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.account-status.under-investigation {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.account-status.blocked {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.16);
+}
+
+/* =========================================
+   INVESTIGATE BUTTON
+========================================= */
+
+.investigate-btn {
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.10);
+  color: #38bdf8;
+  padding: 8px 13px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.investigate-btn:hover {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: rgba(56, 189, 248, 0.65);
+  transform: translateY(-1px);
+}
+
+/* =========================================
+   NO ACCOUNTS
+========================================= */
+
+.no-accounts {
+  text-align: center !important;
+  padding: 45px !important;
+  color: #94a3b8 !important;
+}
+
+/* =========================================
+   ACCOUNT DETAILS
+========================================= */
+
+.account-details-panel {
+  margin-top: 20px;
+}
+
+.account-details-panel .panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+/* =========================================
+   ACCOUNT PROFILE
+========================================= */
+
+.account-profile {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 30px;
+  padding: 25px 0;
+}
+
+.profile-section {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.large-account-avatar {
+  width: 82px;
+  height: 82px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.12);
+  border: 2px solid rgba(59, 130, 246, 0.35);
+  font-size: 34px;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.10);
+}
+
+.profile-section h2 {
+  margin: 0 0 6px;
+  color: #e2e8f0;
+  font-size: 22px;
+}
+
+.profile-section p {
+  margin: 0 0 12px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* =========================================
+   ACCOUNT INFORMATION
+========================================= */
+
+.account-information {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.account-info-item {
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.account-info-item span {
+  display: block;
+  margin-bottom: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.account-info-item strong {
+  display: block;
+  color: #e2e8f0;
+  font-size: 13px;
+  word-break: break-word;
+}
+
+/* =========================================
+   ACCOUNT METRICS
+========================================= */
+
+.account-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.metric-card {
+  padding: 18px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.metric-card span {
+  display: block;
+  margin-bottom: 10px;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.metric-card strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #e2e8f0;
+  font-size: 22px;
+}
+
+.metric-card small {
+  color: #64748b;
+  font-size: 11px;
+}
+
+/* =========================================
+   INVESTIGATION SUMMARY
+========================================= */
+
+.investigation-summary {
+  margin-top: 20px;
+  padding: 20px;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.06);
+  border: 1px solid rgba(59, 130, 246, 0.15);
+}
+
+.investigation-summary h3 {
+  margin: 0 0 10px;
+  color: #e2e8f0;
+  font-size: 16px;
+}
+
+.investigation-summary p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.investigation-summary strong {
+  color: #e2e8f0;
+}
+
+/* =========================================
+   SECONDARY BUTTON
+========================================= */
+
+.secondary-btn {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(148, 163, 184, 0.08);
+  color: #cbd5e1;
+  padding: 9px 14px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background: rgba(148, 163, 184, 0.15);
+  border-color: rgba(148, 163, 184, 0.4);
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1100px) {
+
+  .account-profile {
+    grid-template-columns: 1fr;
+  }
+
+  .account-metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+}
+
+@media (max-width: 700px) {
+
+  .account-information {
+    grid-template-columns: 1fr;
+  }
+
+  .account-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-section {
+    align-items: flex-start;
+  }
+
+  .large-account-avatar {
+    width: 65px;
+    height: 65px;
+    font-size: 27px;
+  }
+
+  .profile-section h2 {
+    font-size: 18px;
+  }
+
+  .account-details-panel .panel-header {
+    align-items: flex-start;
+  }
+
+}
