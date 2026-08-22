@@ -6,6 +6,7 @@ import FraudNetwork from "./pages/FraudNetwork";
 import Alerts from "./pages/Alerts";
 import Analytics from "./pages/Analytics";
 import Transactions from "./pages/Transactions";
+import InvestigationDetails from "./pages/InvestigationDetails";
 import Settings from "./pages/Setting";
 
 
@@ -75,7 +76,9 @@ function App() {
           <Link to="/account-investigation">
           👤 Account Investigation
           </Link>
-
+          <Link to="/investigation-details">
+          🔍 Investigation Details
+          </Link>
           <Link to="/settings">
             ⚙ Settings
           </Link>
@@ -361,6 +364,10 @@ function App() {
         ) : location.pathname === "/settings" ? (
 
           <Settings />
+
+        ) : location.pathname === "/investigation-details" ? (
+
+          <InvestigationDetails />
 
         ) : (
 
