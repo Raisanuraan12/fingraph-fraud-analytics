@@ -1611,3 +1611,325 @@
     text-align: left;
   }
 }
+/* =========================================
+   DAY 12 - INVESTIGATIONS
+========================================= */
+
+.investigation-filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.investigation-filters .search-input {
+  min-width: 220px;
+}
+
+.investigation-filters .transaction-filter {
+  min-width: 130px;
+}
+
+/* =========================================
+   MODAL
+========================================= */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 8, 23, 0.78);
+  backdrop-filter: blur(6px);
+}
+
+.modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 25px;
+  border-radius: 16px;
+  background: #0f1b2d;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.45);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.modal-header h2 {
+  margin: 0 0 6px;
+  color: #f8fafc;
+}
+
+.modal-header p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.modal-close {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.modal-close:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* =========================================
+   MODAL FORM
+========================================= */
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal label {
+  margin-top: 6px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.modal input,
+.modal select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 13px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 9px;
+  outline: none;
+  background: #08111f;
+  color: #e2e8f0;
+  font-size: 14px;
+}
+
+.modal input:focus,
+.modal select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.1);
+}
+
+.modal select option {
+  background: #0f1b2d;
+  color: #e2e8f0;
+}
+
+/* =========================================
+   MODAL BUTTONS
+========================================= */
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.secondary-btn,
+.danger-btn,
+.view-btn {
+  border: none;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: 0.2s ease;
+}
+
+.secondary-btn {
+  padding: 10px 16px;
+  background: rgba(148, 163, 184, 0.12);
+  color: #cbd5e1;
+}
+
+.secondary-btn:hover {
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.danger-btn {
+  padding: 10px 16px;
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.danger-btn:hover {
+  background: rgba(239, 68, 68, 0.25);
+}
+
+/* =========================================
+   VIEW BUTTON
+========================================= */
+
+.view-btn {
+  padding: 7px 13px;
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.view-btn:hover {
+  background: rgba(56, 189, 248, 0.22);
+  transform: translateY(-1px);
+}
+
+/* =========================================
+   STATUS BADGES
+========================================= */
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.open {
+  background: rgba(59, 130, 246, 0.14);
+  color: #60a5fa;
+}
+
+.status-badge.investigating {
+  background: rgba(245, 158, 11, 0.14);
+  color: #fbbf24;
+}
+
+.status-badge.review {
+  background: rgba(168, 85, 247, 0.14);
+  color: #c084fc;
+}
+
+/* =========================================
+   CASE DETAILS
+========================================= */
+
+.case-details-modal {
+  max-width: 500px;
+}
+
+.case-detail-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 10px;
+}
+
+.case-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.case-detail-row span:first-child {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.case-detail-row strong {
+  color: #e2e8f0;
+  font-size: 14px;
+  text-align: right;
+}
+
+/* =========================================
+   EMPTY STATE
+========================================= */
+
+.no-investigations {
+  padding: 45px 20px !important;
+  text-align: center !important;
+  color: #94a3b8;
+}
+
+.empty-icon {
+  margin-bottom: 10px;
+  font-size: 38px;
+}
+
+.no-investigations strong {
+  display: block;
+  color: #e2e8f0;
+  font-size: 15px;
+}
+
+.no-investigations p {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 900px) {
+
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .investigation-filters {
+    width: 100%;
+  }
+
+  .investigation-filters .search-input {
+    width: 100%;
+    min-width: 0;
+  }
+
+}
+
+@media (max-width: 600px) {
+
+  .modal {
+    padding: 20px;
+  }
+
+  .investigation-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .investigation-filters .transaction-filter {
+    width: 100%;
+  }
+
+  .modal-buttons {
+    flex-direction: column;
+  }
+
+  .modal-buttons button {
+    width: 100%;
+  }
+
+  .case-detail-row {
+    align-items: flex-start;
+  }
+
+}
