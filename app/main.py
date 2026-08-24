@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from app.database import driver
 from fastapi.responses import StreamingResponse
@@ -6,6 +7,16 @@ import csv
 import io
 
 app = FastAPI(title="FinGraph API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # =========================
@@ -39,6 +50,19 @@ class RiskDistributionItem(BaseModel):
 class RiskDistributionResponse(BaseModel):
     total_transactions: int
     distribution: list[RiskDistributionItem]
+
+
+class ApiEndpoint(BaseModel):
+    name: str
+    endpoint: str
+    method: str
+
+
+class ApiInfoResponse(BaseModel):
+    project: str
+    version: str
+    total_endpoints: int
+    endpoints: list[ApiEndpoint]
 
 
 # Day 8 - Fraud Analytics Models
@@ -101,6 +125,35 @@ def db_test():
             status_code=500,
             detail=str(e)
         )
+
+
+# =========================
+# API Information
+# =========================
+
+@app.get("/api-info", response_model=ApiInfoResponse)
+def api_info():
+
+    endpoints = [
+        {"name": "Dashboard Stats", "endpoint": "/stats", "method": "GET"},
+        {"name": "Transactions", "endpoint": "/transactions", "method": "GET"},
+        {"name": "Fraud Summary", "endpoint": "/fraud-summary", "method": "GET"},
+        {"name": "Fraud Analytics", "endpoint": "/fraud-analytics", "method": "GET"},
+        {"name": "Fraud Breakdown", "endpoint": "/fraud-breakdown", "method": "GET"},
+        {"name": "Risk Distribution", "endpoint": "/risk-distribution", "method": "GET"},
+        {"name": "Merchant Analytics", "endpoint": "/merchant-analytics", "method": "GET"},
+        {"name": "Location Analytics", "endpoint": "/location-analytics", "method": "GET"},
+        {"name": "Fraud Trend", "endpoint": "/fraud-trend", "method": "GET"},
+        {"name": "Export CSV", "endpoint": "/export-transactions", "method": "GET"},
+    ]
+
+    return {
+        "project": "FinGraph Fraud Analytics",
+        "version": "1.0.0",
+        "total_endpoints": len(endpoints),
+        "endpoints": endpoints
+    }
+
 
 
 # =========================
