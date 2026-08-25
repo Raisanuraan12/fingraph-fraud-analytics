@@ -821,3 +821,310 @@ def export_transactions(limit: int = 100):
                     "attachment; filename=transactions.csv"
             }
         )
+
+
+# =========================
+# Day 12 - Analytics Summary KPI API
+# =========================
+
+@app.get("/analytics-summary")
+def get_analytics_summary():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (t:Transaction)
+                RETURN
+                    count(t) AS total_transactions,
+                    sum(
+                        CASE
+                            WHEN t.fraud_label = 'suspicious'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS suspicious_transactions,
+                    sum(
+                        CASE
+                            WHEN t.fraud_label = 'suspicious'
+                            AND t.foreign_txn_flag = 1
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS suspicious_foreign_transactions
+                """
+            )
+
+            record = result.single()
+
+            total = record["total_transactions"]
+            suspicious = record["suspicious_transactions"]
+
+            suspicious_rate = (
+                round((suspicious / total) * 100, 2)
+                if total else 0
+            )
+
+            return {
+                "total_transactions": total,
+                "suspicious_transactions": suspicious,
+                "suspicious_rate": suspicious_rate,
+                "suspicious_foreign_transactions":
+                    record["suspicious_foreign_transactions"]
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+# =========================
+# Day 12 - Account Risk Distribution API
+# =========================
+
+@app.get("/account-risk-distribution")
+def get_account_risk_distribution():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(:Transaction)
+                WHERE a.account_id IS NOT NULL
+                  AND a.risk_score IS NOT NULL
+
+                WITH DISTINCT a
+
+                RETURN
+                    CASE
+                        WHEN a.risk_score >= 80 THEN 'CRITICAL'
+                        WHEN a.risk_score >= 60 THEN 'HIGH'
+                        WHEN a.risk_score >= 30 THEN 'MEDIUM'
+                        ELSE 'LOW'
+                    END AS risk_tier,
+                    count(a) AS account_count
+                """
+            )
+
+            distribution = {
+                "low": 0,
+                "medium": 0,
+                "high": 0,
+                "critical": 0
+            }
+
+            for record in result:
+                tier = record["risk_tier"].lower()
+                distribution[tier] = record["account_count"]
+
+            return {
+                "risk_distribution": distribution
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+
+# =========================
+# Day 12 - Top Risk Accounts API
+# =========================
+
+@app.get("/top-risk-accounts")
+def get_top_risk_accounts(limit: int = 10):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(:Transaction)
+                WHERE a.account_id IS NOT NULL
+                  AND a.risk_score IS NOT NULL
+
+                WITH DISTINCT a
+
+                RETURN
+                    a.account_id AS account_id,
+                    a.risk_score AS risk_score,
+                    CASE
+                        WHEN a.risk_score >= 80 THEN 'CRITICAL'
+                        WHEN a.risk_score >= 60 THEN 'HIGH'
+                        WHEN a.risk_score >= 30 THEN 'MEDIUM'
+                        ELSE 'LOW'
+                    END AS risk_tier
+
+                ORDER BY a.risk_score DESC
+                LIMIT $limit
+                """,
+                limit=limit
+            )
+
+            accounts = [dict(record) for record in result]
+
+            return {
+                "count": len(accounts),
+                "accounts": accounts
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+# =========================
+# Day 12 - Suspicious Merchant Analysis API
+# =========================
+
+@app.get("/suspicious-merchants")
+def get_suspicious_merchants():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (t:Transaction)-[:AT_MERCHANT]->(m:Merchant)
+                WHERE t.fraud_label = 'suspicious'
+
+                RETURN
+                    m.merchant_type AS merchant_type,
+                    count(t) AS suspicious_transactions
+
+                ORDER BY suspicious_transactions DESC
+                """
+            )
+
+            merchants = [dict(record) for record in result]
+
+            return {
+                "count": len(merchants),
+                "merchants": merchants
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+# =========================
+# Day 12 - Transaction Frequency Analysis API
+# =========================
+
+@app.get("/transaction-frequency")
+def get_transaction_frequency():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (t:Transaction)
+
+                RETURN
+                    t.txn_count_past_hour AS transactions_past_hour,
+                    t.fraud_label AS fraud_label,
+                    count(t) AS transaction_count
+
+                ORDER BY transactions_past_hour DESC, fraud_label
+                """
+            )
+
+            frequency = [dict(record) for record in result]
+
+            return {
+                "count": len(frequency),
+                "frequency": frequency
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+# =========================
+# Day 12 - Foreign Transaction Analysis API
+# =========================
+
+@app.get("/foreign-transactions")
+def get_foreign_transactions():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (t:Transaction)
+
+                RETURN
+                    t.foreign_txn_flag AS foreign_txn,
+                    t.fraud_label AS fraud_label,
+                    count(t) AS transaction_count
+
+                ORDER BY foreign_txn, fraud_label
+                """
+            )
+
+            foreign_transactions = []
+
+            for record in result:
+                foreign_transactions.append({
+                    "foreign_txn": bool(record["foreign_txn"]),
+                    "fraud_label": record["fraud_label"],
+                    "transaction_count": record["transaction_count"]
+                })
+
+            return {
+                "count": len(foreign_transactions),
+                "foreign_transactions": foreign_transactions
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+# =========================
+# Day 12 - Circular Flow Test API
+# Synthetic/Test Data Only
+# =========================
+
+@app.get("/circular-flow-test")
+def get_circular_flow_test():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH p = (a:Account)-[:TRANSFERRED_TO*3..3]->(a)
+                WHERE a.account_id STARTS WITH 'TEST'
+
+                RETURN
+                    a.account_id AS start_account,
+                    [n IN nodes(p) | n.account_id] AS flow,
+                    length(p) AS path_length
+                """
+            )
+
+            cycles = [dict(record) for record in result]
+
+            return {
+                "test_data": True,
+                "production_data": False,
+                "note": (
+                    "Circular-flow detection is currently validated "
+                    "only on synthetic test data."
+                ),
+                "count": len(cycles),
+                "cycles": cycles
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
