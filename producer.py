@@ -1,6 +1,6 @@
 """
 Kafka Event Producer for Financial Transaction Data Streaming.
-Simulates real-time transaction events into Kafka topics for graph processing.
+Engineered by shubhamgawari9226 - Simulates real-time transaction events.
 """
 import json
 import time
@@ -35,9 +35,10 @@ except FileNotFoundError:
     print(f"Error: The file '{csv_file_path}' was not found in your project folder.")
     df_final = None
 
-# 3. Stream Rows to Kafka with Updated Headers
-if df_final is not None:
-    print(f"Starting real-time streaming to Kafka topic: '{KAFKA_TOPIC}'...\n")
+# 3. Stream Rows to Kafka with Updated Headers"""
+Kafka Event Producer for Financial Transaction Data Streaming.
+Engineered by shubhamgawari9226 - Simulates real-time transaction events.
+""")
     
     for index, row in df_final.iterrows():
         # Convert row to dictionary map

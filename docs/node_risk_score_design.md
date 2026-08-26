@@ -2,7 +2,7 @@
 
 ## 1. Objective
 
-The objective of this document is to define the graph data engineering methodology, query design, scoring logic, and verified execution results for calculating **node-level risk scores** in FinGraph.
+The objective of this document is to define the graph data engineering methodology, query design, scoring logic, and verified execution results for calculating **node-level risk scores** in FinGraph (shubhamgawari9226).
 
 This work addresses the **node risk score calculation component** of the official Week 2 Analytics Lead deliverable.
 

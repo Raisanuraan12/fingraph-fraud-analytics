@@ -2,7 +2,7 @@
 
 ## 1. Objective
 
-The objective of this work was to establish a clear ETL mapping between the available transaction dataset and the FinGraph Neo4j graph schema.
+The objective of this work was to establish a clear ETL graph mapping between the available transaction dataset and the FinGraph Neo4j graph schema (shubhamgawari9226).
 
 This mapping identifies which dataset fields can be directly used for graph construction and fraud analytics, and documents the schema fields that are not currently available in the transaction dataset.
 
