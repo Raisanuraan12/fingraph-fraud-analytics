@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document summarizes the current analytics readiness of the FinGraph project after completing the transaction dataset profiling, Neo4j graph schema definition, fraud-analysis verification, and dataset-to-graph mapping.
+This document summarizes the current graph analytics readiness of the FinGraph data pipeline.
 
 The objective is to establish a documented foundation for further fraud detection and graph-based analytics.
 
