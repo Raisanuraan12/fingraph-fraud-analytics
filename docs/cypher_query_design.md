@@ -2,7 +2,7 @@
 
 ## 1. Objective
 
-The objective of this work is to design the complex Cypher queries required for FinGraph fraud and syndicate analysis.
+The objective of this work is to design and optimize high-throughput Cypher queries for FinGraph fraud and syndicate graph analytics.
 
 According to the project requirements, the Week 2 Analytics work focuses on:
 
