@@ -1,3 +1,4 @@
+// FinGraph Data Engineering - Bulk CSV Cypher Ingestion Script
 LOAD CSV WITH HEADERS FROM 'file:///transactions_dataset.csv' AS row
 MERGE (cust:Customer {account: row.customer_account})
 MERGE (merch:MerchantType {type: row.merchant_type})
