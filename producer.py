@@ -1,3 +1,7 @@
+"""
+Kafka Event Producer for Financial Transaction Data Streaming.
+Simulates real-time transaction events into Kafka topics for graph processing.
+"""
 import json
 import time
 import pandas as pd
