@@ -2,7 +2,7 @@
 
 ## 1. Objective
 
-Implement and validate detection of the required circular money-flow pattern:
+Implement and validate graph algorithmic detection of the required circular money-flow pattern:
 
 **A → B → C → A**
 
