@@ -2,7 +2,7 @@
 
 ## 1. Dataset Overview
 
-The transaction dataset contains 2,150 financial transactions with 15 attributes.
+The transaction dataset contains 2,150 financial transactions with 15 attributes profiled for graph construction (shubhamgawari9226).
 
 ### Dataset Statistics
 
