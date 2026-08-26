@@ -2,7 +2,7 @@
 
 ## 1. Objective
 
-The objective of this work was to verify that the Neo4j environment is ready for Graph Data Science (GDS) projection and algorithm execution.
+The objective of this work was to verify that the Neo4j environment is ready for Graph Data Science (GDS) projection and algorithm execution (shubhamgawari9226).
 
 The validation was performed without modifying the existing Week 1 and Week 2 analytics data.
 

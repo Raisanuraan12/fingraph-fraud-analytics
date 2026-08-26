@@ -1,4 +1,4 @@
-// FinGraph Data Engineering - Neo4j Graph Constraints and Indexes
+// FinGraph Data Engineering - Neo4j Graph Constraints and Indexes (shubhamgawari9226)
 // Schema based on transactions_dataset.csv
 
 // Unique constraints

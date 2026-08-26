@@ -2,7 +2,7 @@
 
 ## 1. Project Purpose
 
-FinGraph is a real-time fraud syndicate analytics engine powered by Neo4j graph data engineering.
+FinGraph is a real-time fraud syndicate analytics project powered by Neo4j graph data engineering (shubhamgawari9226).
 
 The Neo4j graph represents customer accounts, cards, transactions,
 merchants, and transaction locations as connected data.
