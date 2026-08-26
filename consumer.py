@@ -1,3 +1,7 @@
+"""
+Kafka Event Consumer for Ingesting Transactions into Neo4j.
+Consumes real-time transaction events from Kafka topics and writes nodes/edges.
+"""
 import json
 from kafka import KafkaConsumer
 
