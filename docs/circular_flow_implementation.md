@@ -2,7 +2,7 @@
 
 ## 1. Objective
 
-The objective of this work is to assess the implementation readiness of the required circular money-flow detection pattern:
+The objective of this work is to assess the graph pipeline implementation readiness of the required circular money-flow detection pattern:
 
 A → B → C → A
 
