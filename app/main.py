@@ -1230,3 +1230,76 @@ def get_account_investigation(
             status_code=500,
             detail=str(e)
         )
+
+
+# =========================
+# Day 13 - Investigation Alerts API
+# =========================
+
+@app.get("/investigation-alerts")
+def get_investigation_alerts(
+    limit: int = 20,
+    min_risk: float = 0.0
+):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+
+                WHERE t.fraud_label = 'suspicious'
+                  AND t.risk_index >= $min_risk
+
+                OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+                OPTIONAL MATCH (t)-[:OCCURRED_IN]->(l:Location)
+
+                RETURN
+                    t.txn_id AS txn_id,
+                    a.account_id AS account_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.payment_channel AS channel,
+                    t.risk_index AS risk_index,
+                    t.foreign_txn_flag AS foreign_txn,
+                    t.txn_count_past_hour AS transactions_past_hour,
+                    t.txn_datetime AS txn_datetime,
+                    m.merchant_type AS merchant_type,
+                    l.city AS city,
+
+                    CASE
+                        WHEN t.risk_index >= 0.80 THEN 'CRITICAL'
+                        WHEN t.risk_index >= 0.60 THEN 'HIGH'
+                        WHEN t.risk_index >= 0.30 THEN 'MEDIUM'
+                        ELSE 'LOW'
+                    END AS alert_severity
+
+                ORDER BY t.risk_index DESC
+                LIMIT $limit
+                """,
+                limit=limit,
+                min_risk=min_risk
+            )
+
+            alerts = []
+
+            for record in result:
+                alert = dict(record)
+
+                alert["foreign_txn"] = bool(
+                    alert["foreign_txn"]
+                )
+
+                alerts.append(alert)
+
+            return {
+                "count": len(alerts),
+                "min_risk": min_risk,
+                "alerts": alerts
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
