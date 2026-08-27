@@ -1128,3 +1128,105 @@ def get_circular_flow_test():
             status_code=500,
             detail=str(e)
         )
+
+
+
+# =========================
+# Day 13 - Account Investigation API
+# =========================
+
+@app.get("/account-investigation/{account_id}")
+def get_account_investigation(
+    account_id: str,
+    limit: int = 20
+):
+    try:
+        with driver.session() as session:
+
+            # Account-level summary
+            summary_result = session.run(
+                """
+                MATCH (a:Account {account_id: $account_id})-[:MADE]->(t:Transaction)
+
+                RETURN
+                    a.account_id AS account_id,
+                    a.risk_score AS risk_score,
+
+                    CASE
+                        WHEN a.risk_score >= 80 THEN 'CRITICAL'
+                        WHEN a.risk_score >= 60 THEN 'HIGH'
+                        WHEN a.risk_score >= 30 THEN 'MEDIUM'
+                        ELSE 'LOW'
+                    END AS risk_tier,
+
+                    count(t) AS total_transactions,
+
+                    sum(
+                        CASE
+                            WHEN t.fraud_label = 'suspicious'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS suspicious_transactions,
+
+                    max(t.risk_index) AS highest_transaction_risk,
+
+                    sum(
+                        CASE
+                            WHEN t.foreign_txn_flag = 1
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS foreign_transactions
+                """,
+                account_id=account_id
+            )
+
+            summary = summary_result.single()
+
+            if not summary:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Account not found"
+                )
+
+            # Recent transactions
+            transaction_result = session.run(
+                """
+                MATCH (a:Account {account_id: $account_id})-[:MADE]->(t:Transaction)
+
+                RETURN
+                    t.txn_id AS txn_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.payment_channel AS channel,
+                    t.fraud_label AS fraud_label,
+                    t.risk_index AS risk_index,
+                    t.foreign_txn_flag AS foreign_txn,
+                    t.txn_datetime AS txn_datetime
+
+                ORDER BY t.txn_datetime DESC
+                LIMIT $limit
+                """,
+                account_id=account_id,
+                limit=limit
+            )
+
+            transactions = [
+                dict(record)
+                for record in transaction_result
+            ]
+
+            return {
+                "account": dict(summary),
+                "recent_transactions": transactions
+            }
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
