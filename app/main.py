@@ -203,6 +203,7 @@ def get_stats():
         )
 
 
+
 # =========================
 # Latest Transactions API
 # =========================
@@ -291,6 +292,76 @@ def get_transactions(
 
     except Exception as e:
         return {"error": str(e)}
+
+
+# =========================
+# Single Transaction API
+# Day 14 - Enhanced Investigation Details
+# =========================
+
+@app.get("/transaction/{txn_id}")
+def get_transaction(txn_id: str):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+                    WHERE t.txn_id = $txn_id
+
+                    OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+                    OPTIONAL MATCH (t)-[:OCCURRED_IN]->(l:Location)
+
+                RETURN
+                    a.account_id AS account_id,
+                    t.txn_id AS txn_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.payment_channel AS channel,
+                    t.fraud_label AS fraud_label,
+                    t.risk_index AS risk_index,
+                    t.txn_datetime AS txn_datetime,
+                    t.foreign_txn_flag AS foreign_txn,
+                    t.txn_count_past_hour AS transactions_past_hour,
+                    m.merchant_type AS merchant_type,
+                    l.city AS city,
+
+                    CASE
+                        WHEN t.risk_index >= 0.9 THEN 'CRITICAL'
+                        WHEN t.risk_index >= 0.7 THEN 'HIGH'
+                        WHEN t.risk_index >= 0.4 THEN 'MEDIUM'
+                        ELSE 'LOW'
+                    END AS risk_severity
+
+                LIMIT 1
+                """,
+                txn_id=txn_id
+            )
+
+            record = result.single()
+
+            if not record:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Transaction not found"
+                )
+
+            transaction = dict(record)
+
+            transaction["foreign_txn"] = bool(
+                transaction["foreign_txn"]
+            )
+
+            return transaction
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 
 # =========================
@@ -690,46 +761,6 @@ def get_account_transactions(
     except Exception as e:
         return {"error": str(e)}
 
-
-# =========================
-# Single Transaction API
-# =========================
-
-@app.get("/transaction/{txn_id}")
-def get_transaction(txn_id: str):
-    try:
-        with driver.session() as session:
-
-            result = session.run(
-                """
-                MATCH (a:Account)-[:MADE]->(t:Transaction)
-
-                WHERE t.txn_id = $txn_id
-
-                RETURN
-                    a.account_id AS account_id,
-                    t.txn_id AS txn_id,
-                    t.txn_amount AS amount,
-                    t.txn_currency AS currency,
-                    t.payment_channel AS channel,
-                    t.fraud_label AS fraud_label,
-                    t.risk_index AS risk_index,
-                    t.txn_datetime AS txn_datetime
-
-                LIMIT 1
-                """,
-                txn_id=txn_id
-            )
-
-            record = result.single()
-
-            if not record:
-                return {"error": "Transaction not found"}
-
-            return dict(record)
-
-    except Exception as e:
-        return {"error": str(e)}
 
 
 # =========================
@@ -1380,3 +1411,5 @@ def get_investigation_accounts(
             status_code=500,
             detail=str(e)
         )
+
+
