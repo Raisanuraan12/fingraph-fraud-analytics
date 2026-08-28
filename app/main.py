@@ -1303,3 +1303,80 @@ def get_investigation_alerts(
             status_code=500,
             detail=str(e)
         )
+
+# =========================
+# Day 14 - Investigation Accounts API
+# =========================
+
+@app.get("/investigation-accounts")
+def get_investigation_accounts(
+    limit: int = 20,
+    min_risk_score: int = 0
+):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+
+                WHERE a.account_id IS NOT NULL
+                  AND a.risk_score IS NOT NULL
+                  AND a.risk_score >= $min_risk_score
+
+                WITH
+                    a,
+                    count(t) AS total_transactions,
+                    sum(
+                        CASE
+                            WHEN t.fraud_label = 'suspicious'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS suspicious_transactions,
+                    sum(t.txn_amount) AS total_amount,
+                    max(t.risk_index) AS highest_transaction_risk
+
+                RETURN
+                    a.account_id AS account_id,
+                    a.risk_score AS risk_score,
+
+                    CASE
+                        WHEN a.risk_score >= 80 THEN 'CRITICAL'
+                        WHEN a.risk_score >= 60 THEN 'HIGH'
+                        WHEN a.risk_score >= 30 THEN 'MEDIUM'
+                        ELSE 'LOW'
+                    END AS risk_tier,
+
+                    total_transactions,
+                    suspicious_transactions,
+                    round(total_amount, 2) AS total_amount,
+                    highest_transaction_risk
+
+                ORDER BY
+                    a.risk_score DESC,
+                    suspicious_transactions DESC,
+                    highest_transaction_risk DESC
+
+                LIMIT $limit
+                """,
+                limit=limit,
+                min_risk_score=min_risk_score
+            )
+
+            accounts = [
+                dict(record)
+                for record in result
+            ]
+
+            return {
+                "count": len(accounts),
+                "min_risk_score": min_risk_score,
+                "accounts": accounts
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
