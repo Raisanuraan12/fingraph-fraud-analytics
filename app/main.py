@@ -203,6 +203,7 @@ def get_stats():
         )
 
 
+
 # =========================
 # Latest Transactions API
 # =========================
@@ -291,6 +292,76 @@ def get_transactions(
 
     except Exception as e:
         return {"error": str(e)}
+
+
+# =========================
+# Single Transaction API
+# Day 14 - Enhanced Investigation Details
+# =========================
+
+@app.get("/transaction/{txn_id}")
+def get_transaction(txn_id: str):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+                    WHERE t.txn_id = $txn_id
+
+                    OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+                    OPTIONAL MATCH (t)-[:OCCURRED_IN]->(l:Location)
+
+                RETURN
+                    a.account_id AS account_id,
+                    t.txn_id AS txn_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.payment_channel AS channel,
+                    t.fraud_label AS fraud_label,
+                    t.risk_index AS risk_index,
+                    t.txn_datetime AS txn_datetime,
+                    t.foreign_txn_flag AS foreign_txn,
+                    t.txn_count_past_hour AS transactions_past_hour,
+                    m.merchant_type AS merchant_type,
+                    l.city AS city,
+
+                    CASE
+                        WHEN t.risk_index >= 0.9 THEN 'CRITICAL'
+                        WHEN t.risk_index >= 0.7 THEN 'HIGH'
+                        WHEN t.risk_index >= 0.4 THEN 'MEDIUM'
+                        ELSE 'LOW'
+                    END AS risk_severity
+
+                LIMIT 1
+                """,
+                txn_id=txn_id
+            )
+
+            record = result.single()
+
+            if not record:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Transaction not found"
+                )
+
+            transaction = dict(record)
+
+            transaction["foreign_txn"] = bool(
+                transaction["foreign_txn"]
+            )
+
+            return transaction
+
+    except HTTPException:
+        raise
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
 
 # =========================
@@ -690,46 +761,6 @@ def get_account_transactions(
     except Exception as e:
         return {"error": str(e)}
 
-
-# =========================
-# Single Transaction API
-# =========================
-
-@app.get("/transaction/{txn_id}")
-def get_transaction(txn_id: str):
-    try:
-        with driver.session() as session:
-
-            result = session.run(
-                """
-                MATCH (a:Account)-[:MADE]->(t:Transaction)
-
-                WHERE t.txn_id = $txn_id
-
-                RETURN
-                    a.account_id AS account_id,
-                    t.txn_id AS txn_id,
-                    t.txn_amount AS amount,
-                    t.txn_currency AS currency,
-                    t.payment_channel AS channel,
-                    t.fraud_label AS fraud_label,
-                    t.risk_index AS risk_index,
-                    t.txn_datetime AS txn_datetime
-
-                LIMIT 1
-                """,
-                txn_id=txn_id
-            )
-
-            record = result.single()
-
-            if not record:
-                return {"error": "Transaction not found"}
-
-            return dict(record)
-
-    except Exception as e:
-        return {"error": str(e)}
 
 
 # =========================
@@ -1303,3 +1334,187 @@ def get_investigation_alerts(
             status_code=500,
             detail=str(e)
         )
+
+# =========================
+# Day 14 - Investigation Accounts API
+# =========================
+
+@app.get("/investigation-accounts")
+def get_investigation_accounts(
+    limit: int = 20,
+    min_risk_score: int = 0
+):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+
+                WHERE a.account_id IS NOT NULL
+                  AND a.risk_score IS NOT NULL
+                  AND a.risk_score >= $min_risk_score
+
+                WITH
+                    a,
+                    count(t) AS total_transactions,
+                    sum(
+                        CASE
+                            WHEN t.fraud_label = 'suspicious'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS suspicious_transactions,
+                    sum(t.txn_amount) AS total_amount,
+                    max(t.risk_index) AS highest_transaction_risk
+
+                RETURN
+                    a.account_id AS account_id,
+                    a.risk_score AS risk_score,
+
+                    CASE
+                        WHEN a.risk_score >= 80 THEN 'CRITICAL'
+                        WHEN a.risk_score >= 60 THEN 'HIGH'
+                        WHEN a.risk_score >= 30 THEN 'MEDIUM'
+                        ELSE 'LOW'
+                    END AS risk_tier,
+
+                    total_transactions,
+                    suspicious_transactions,
+                    round(total_amount, 2) AS total_amount,
+                    highest_transaction_risk
+
+                ORDER BY
+                    a.risk_score DESC,
+                    suspicious_transactions DESC,
+                    highest_transaction_risk DESC
+
+                LIMIT $limit
+                """,
+                limit=limit,
+                min_risk_score=min_risk_score
+            )
+
+            accounts = [
+                dict(record)
+                for record in result
+            ]
+
+            return {
+                "count": len(accounts),
+                "min_risk_score": min_risk_score,
+                "accounts": accounts
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+# =========================
+# Day 15 - Dashboard Overview API
+# =========================
+
+@app.get("/dashboard-overview")
+def get_dashboard_overview():
+    try:
+        with driver.session() as session:
+
+            # Main dashboard statistics
+            stats_record = session.run(
+                """
+                MATCH (t:Transaction)
+
+                WITH
+                    count(t) AS total_transactions,
+                    sum(
+                        CASE
+                            WHEN t.fraud_label <> 'normal'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS fraud_transactions,
+                    sum(
+                        CASE
+                            WHEN t.risk_index >= 0.8
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS high_risk_transactions
+
+                MATCH (a:Account)
+
+                RETURN
+                    count(a) AS total_accounts,
+                    total_transactions,
+                    fraud_transactions,
+                    high_risk_transactions
+                """
+            )
+
+            stats = dict(stats_record.single())
+
+            # Latest high-risk alerts
+            alerts_result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+
+                WHERE t.risk_index >= 0.8
+
+                OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+                OPTIONAL MATCH (t)-[:OCCURRED_IN]->(l:Location)
+
+                RETURN
+                    t.txn_id AS txn_id,
+                    a.account_id AS account_id,
+                    t.txn_amount AS amount,
+                    t.risk_index AS risk_index,
+                    t.txn_datetime AS txn_datetime,
+                    m.merchant_type AS merchant_type,
+                    l.city AS city
+
+                ORDER BY t.risk_index DESC
+                LIMIT 5
+                """
+            )
+
+            recent_alerts = [
+                dict(record)
+                for record in alerts_result
+            ]
+
+            # Highest-risk accounts
+            accounts_result = session.run(
+                """
+                MATCH (a:Account)
+
+                WHERE a.risk_score IS NOT NULL
+                AND a.account_id IS NOT NULL
+                RETURN
+                    a.account_id AS account_id,
+                    a.risk_score AS risk_score,
+                    a.risk_tier AS risk_tier
+
+                ORDER BY a.risk_score DESC
+                LIMIT 5
+                """
+            )
+
+            top_risk_accounts = [
+                dict(record)
+                for record in accounts_result
+            ]
+
+            return {
+                "stats": stats,
+                "recent_alerts": recent_alerts,
+                "top_risk_accounts": top_risk_accounts
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
