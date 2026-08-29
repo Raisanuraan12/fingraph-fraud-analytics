@@ -1412,4 +1412,109 @@ def get_investigation_accounts(
             detail=str(e)
         )
 
+# =========================
+# Day 15 - Dashboard Overview API
+# =========================
+
+@app.get("/dashboard-overview")
+def get_dashboard_overview():
+    try:
+        with driver.session() as session:
+
+            # Main dashboard statistics
+            stats_record = session.run(
+                """
+                MATCH (t:Transaction)
+
+                WITH
+                    count(t) AS total_transactions,
+                    sum(
+                        CASE
+                            WHEN t.fraud_label <> 'normal'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS fraud_transactions,
+                    sum(
+                        CASE
+                            WHEN t.risk_index >= 0.8
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS high_risk_transactions
+
+                MATCH (a:Account)
+
+                RETURN
+                    count(a) AS total_accounts,
+                    total_transactions,
+                    fraud_transactions,
+                    high_risk_transactions
+                """
+            )
+
+            stats = dict(stats_record.single())
+
+            # Latest high-risk alerts
+            alerts_result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+
+                WHERE t.risk_index >= 0.8
+
+                OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+                OPTIONAL MATCH (t)-[:OCCURRED_IN]->(l:Location)
+
+                RETURN
+                    t.txn_id AS txn_id,
+                    a.account_id AS account_id,
+                    t.txn_amount AS amount,
+                    t.risk_index AS risk_index,
+                    t.txn_datetime AS txn_datetime,
+                    m.merchant_type AS merchant_type,
+                    l.city AS city
+
+                ORDER BY t.risk_index DESC
+                LIMIT 5
+                """
+            )
+
+            recent_alerts = [
+                dict(record)
+                for record in alerts_result
+            ]
+
+            # Highest-risk accounts
+            accounts_result = session.run(
+                """
+                MATCH (a:Account)
+
+                WHERE a.risk_score IS NOT NULL
+                AND a.account_id IS NOT NULL
+                RETURN
+                    a.account_id AS account_id,
+                    a.risk_score AS risk_score,
+                    a.risk_tier AS risk_tier
+
+                ORDER BY a.risk_score DESC
+                LIMIT 5
+                """
+            )
+
+            top_risk_accounts = [
+                dict(record)
+                for record in accounts_result
+            ]
+
+            return {
+                "stats": stats,
+                "recent_alerts": recent_alerts,
+                "top_risk_accounts": top_risk_accounts
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
 
