@@ -1,71 +1,40 @@
-
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 function Dashboard() {
-  const fraudData = [
-    { time: "10 AM", value: 45 },
-    { time: "11 AM", value: 65 },
-    { time: "12 PM", value: 40 },
-    { time: "1 PM", value: 80 },
-    { time: "2 PM", value: 55 },
-    { time: "3 PM", value: 90 },
-    { time: "4 PM", value: 70 },
-  ];
+  const [dashboardData, setDashboardData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const recentTransactions = [
-    {
-      id: "TXN-78421",
-      customer: "Customer A",
-      amount: "₹2.4L",
-      risk: "High",
-      status: "Suspicious",
-    },
-    {
-      id: "TXN-78435",
-      customer: "Customer B",
-      amount: "₹85K",
-      risk: "Medium",
-      status: "Review",
-    },
-    {
-      id: "TXN-78456",
-      customer: "Customer C",
-      amount: "₹42K",
-      risk: "Low",
-      status: "Completed",
-    },
-    {
-      id: "TXN-78472",
-      customer: "Customer D",
-      amount: "₹1.8L",
-      risk: "High",
-      status: "Suspicious",
-    },
-  ];
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  const recentAlerts = [
-    {
-      id: "ALT-1001",
-      transaction: "TXN-78421",
-      customer: "Customer A",
-      risk: "Critical",
-      status: "Active",
-    },
-    {
-      id: "ALT-1002",
-      transaction: "TXN-78472",
-      customer: "Customer D",
-      risk: "High",
-      status: "Active",
-    },
-    {
-      id: "ALT-1003",
-      transaction: "TXN-78435",
-      customer: "Customer B",
-      risk: "Medium",
-      status: "Review",
-    },
-  ];
+      const response = await fetch(
+        "http://127.0.0.1:8000/dashboard-overview"
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to load dashboard data");
+      }
+
+      const data = await response.json();
+
+      setDashboardData(data);
+    } catch (err) {
+      console.error("Dashboard API error:", err);
+      setError("Unable to load live dashboard data.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const stats = dashboardData?.stats;
 
   return (
     <div className="dashboard-page">
@@ -86,33 +55,78 @@ function Dashboard() {
       </header>
 
       {/* =========================================
+          LOADING STATE
+      ========================================= */}
+
+      {loading && (
+        <div className="dashboard-card">
+          <p>Loading dashboard analytics...</p>
+        </div>
+      )}
+
+      {/* =========================================
+          ERROR STATE
+      ========================================= */}
+
+      {error && (
+        <div className="dashboard-card">
+          <div className="card-header">
+            <div>
+              <h2>Dashboard Data Unavailable</h2>
+              <p>{error}</p>
+            </div>
+
+            <button
+              className="dashboard-view-all"
+              onClick={fetchDashboardData}
+            >
+              Retry
+            </button>
+          </div>
+
+          <small>
+            The dashboard interface is working, but the backend is currently
+            unable to retrieve data from the Neo4j database.
+          </small>
+        </div>
+      )}
+
+      {/* =========================================
           STATISTICS
       ========================================= */}
 
       <section className="stats-grid">
 
         <div className="stat-card">
-          <span>🚨 Active Alerts</span>
-          <h2>24</h2>
-          <small>+12% today</small>
+          <span>🚨 Total Accounts</span>
+          <h2>
+            {stats?.total_accounts ?? "--"}
+          </h2>
+          <small>FinGraph accounts</small>
         </div>
 
         <div className="stat-card">
           <span>💳 Transactions</span>
-          <h2>12,840</h2>
-          <small>+8.4% today</small>
+          <h2>
+            {stats?.total_transactions ?? "--"}
+          </h2>
+          <small>Total transactions</small>
         </div>
 
         <div className="stat-card">
-          <span>⚠️ Fraud Detected</span>
-          <h2>₹8.4L</h2>
-          <small>+5.2% today</small>
+          <span>⚠️ Fraud Transactions</span>
+          <h2>
+            {stats?.fraud_transactions ?? "--"}
+          </h2>
+          <small>Transactions marked non-normal</small>
         </div>
 
         <div className="stat-card">
-          <span>🕸️ Suspicious Networks</span>
-          <h2>37</h2>
-          <small>3 new networks</small>
+          <span>🔴 High-Risk Transactions</span>
+          <h2>
+            {stats?.high_risk_transactions ?? "--"}
+          </h2>
+          <small>Risk index ≥ 0.8</small>
         </div>
 
       </section>
@@ -146,7 +160,7 @@ function Dashboard() {
           className="dashboard-action-card"
         >
           <span className="dashboard-action-icon">
-            🔍
+            🔎
           </span>
 
           <div>
@@ -198,13 +212,13 @@ function Dashboard() {
       </section>
 
       {/* =========================================
-          MAIN DASHBOARD
+          DASHBOARD OVERVIEW
       ========================================= */}
 
       <section className="dashboard-grid">
 
         {/* =====================================
-            FRAUD ACTIVITY
+            RECENT HIGH-RISK ALERTS
         ====================================== */}
 
         <div className="dashboard-card">
@@ -212,10 +226,10 @@ function Dashboard() {
           <div className="card-header">
 
             <div>
-              <h2>Fraud Activity</h2>
+              <h2>Recent High-Risk Alerts</h2>
 
               <p>
-                Real-time fraud detection trends
+                Highest-risk transactions from the backend
               </p>
             </div>
 
@@ -225,49 +239,45 @@ function Dashboard() {
 
           </div>
 
-          <div className="activity-chart">
+          <div className="risk-list">
 
-            <div className="chart-bars">
+            {dashboardData?.recent_alerts?.length > 0 ? (
 
-              {fraudData.map((item, index) => (
+              dashboardData.recent_alerts.map((alert) => (
 
                 <div
-                  className="bar-wrapper"
-                  key={index}
+                  className="risk-item"
+                  key={alert.txn_id}
                 >
 
-                  <div
-                    className="bar"
-                    style={{
-                      height: `${item.value}%`,
-                    }}
-                    title={`${item.time}: ${item.value}%`}
-                  ></div>
+                  <span>
+                    {alert.txn_id}
+                  </span>
+
+                  <strong>
+                    {Number(alert.risk_index).toFixed(2)}
+                  </strong>
 
                 </div>
 
-              ))}
+              ))
 
-            </div>
+            ) : (
 
-            <div className="chart-labels">
+              <p>
+                {loading
+                  ? "Loading alerts..."
+                  : "No analytics data available."}
+              </p>
 
-              {fraudData.map((item, index) => (
-
-                <span key={index}>
-                  {item.time}
-                </span>
-
-              ))}
-
-            </div>
+            )}
 
           </div>
 
         </div>
 
         {/* =====================================
-            RISK OVERVIEW
+            TOP RISK ACCOUNTS
         ====================================== */}
 
         <div className="dashboard-card">
@@ -275,10 +285,10 @@ function Dashboard() {
           <div className="card-header">
 
             <div>
-              <h2>Risk Overview</h2>
+              <h2>Top Risk Accounts</h2>
 
               <p>
-                Current transaction risk levels
+                Highest-risk accounts identified by analytics
               </p>
             </div>
 
@@ -286,39 +296,36 @@ function Dashboard() {
 
           <div className="risk-list">
 
-            <div className="risk-item">
-              <span>🔴 High Risk</span>
-              <strong>18%</strong>
-            </div>
+            {dashboardData?.top_risk_accounts?.length > 0 ? (
 
-            <div className="risk-item">
-              <span>🟡 Medium Risk</span>
-              <strong>32%</strong>
-            </div>
+              dashboardData.top_risk_accounts.map((account) => (
 
-            <div className="risk-item">
-              <span>🟢 Low Risk</span>
-              <strong>50%</strong>
-            </div>
+                <div
+                  className="risk-item"
+                  key={account.account_id}
+                >
 
-          </div>
+                  <span>
+                    {account.account_id}
+                  </span>
 
-          <div className="dashboard-risk-progress">
+                  <strong>
+                    {Number(account.risk_score).toFixed(2)}
+                  </strong>
 
-            <div
-              className="risk-progress-high"
-              style={{ width: "18%" }}
-            ></div>
+                </div>
 
-            <div
-              className="risk-progress-medium"
-              style={{ width: "32%" }}
-            ></div>
+              ))
 
-            <div
-              className="risk-progress-low"
-              style={{ width: "50%" }}
-            ></div>
+            ) : (
+
+              <p>
+                {loading
+                  ? "Loading accounts..."
+                  : "No risk account data available."}
+              </p>
+
+            )}
 
           </div>
 
@@ -327,7 +334,7 @@ function Dashboard() {
       </section>
 
       {/* =========================================
-          RECENT TRANSACTIONS
+          RECENT ALERT DETAILS
       ========================================= */}
 
       <section className="dashboard-card dashboard-table-card">
@@ -335,97 +342,10 @@ function Dashboard() {
         <div className="card-header">
 
           <div>
-            <h2>Recent Transactions</h2>
+            <h2>Recent High-Risk Transactions</h2>
 
             <p>
-              Latest financial transaction activity
-            </p>
-          </div>
-
-          <Link
-            to="/transactions"
-            className="dashboard-view-all"
-          >
-            View All →
-          </Link>
-
-        </div>
-
-        <div className="dashboard-table-container">
-
-          <table className="dashboard-table">
-
-            <thead>
-
-              <tr>
-                <th>Transaction</th>
-                <th>Customer</th>
-                <th>Amount</th>
-                <th>Risk</th>
-                <th>Status</th>
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              {recentTransactions.map((item) => (
-
-                <tr key={item.id}>
-
-                  <td>
-                    <strong>{item.id}</strong>
-                  </td>
-
-                  <td>
-                    {item.customer}
-                  </td>
-
-                  <td>
-                    {item.amount}
-                  </td>
-
-                  <td>
-                    <span
-                      className={`risk-badge ${item.risk.toLowerCase()}`}
-                    >
-                      {item.risk}
-                    </span>
-                  </td>
-
-                  <td>
-                    <span
-                      className={`transaction-status ${item.status.toLowerCase()}`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-
-                </tr>
-
-              ))}
-
-            </tbody>
-
-          </table>
-
-        </div>
-
-      </section>
-
-      {/* =========================================
-          RECENT FRAUD ALERTS
-      ========================================= */}
-
-      <section className="dashboard-card dashboard-table-card">
-
-        <div className="card-header">
-
-          <div>
-            <h2>Recent Fraud Alerts</h2>
-
-            <p>
-              Latest suspicious activities detected
+              Latest transactions returned by the dashboard API
             </p>
           </div>
 
@@ -445,68 +365,103 @@ function Dashboard() {
             <thead>
 
               <tr>
-                <th>Alert ID</th>
                 <th>Transaction</th>
-                <th>Customer</th>
+                <th>Account</th>
+                <th>Amount</th>
                 <th>Risk</th>
-                <th>Status</th>
+                <th>Merchant</th>
+                <th>Location</th>
               </tr>
 
             </thead>
 
             <tbody>
 
-              {recentAlerts.map((alert) => (
+              {dashboardData?.recent_alerts?.length > 0 ? (
 
-                <tr key={alert.id}>
+                dashboardData.recent_alerts.map((alert) => (
 
-                  <td>
-                    <strong>{alert.id}</strong>
+                  <tr key={alert.txn_id}>
+
+                    <td>
+                      <strong>
+                        {alert.txn_id}
+                      </strong>
+                    </td>
+
+                    <td>
+                      {alert.account_id ?? "--"}
+                    </td>
+
+                    <td>
+                      {alert.amount ?? "--"}
+                    </td>
+
+                    <td>
+
+                      <span className="risk-badge high">
+                        {Number(alert.risk_index).toFixed(2)}
+                      </span>
+
+                    </td>
+
+                    <td>
+                      {alert.merchant_type ?? "--"}
+                    </td>
+
+                    <td>
+                      {alert.city ?? "--"}
+                    </td>
+
+                  </tr>
+
+                ))
+
+              ) : (
+
+                <tr>
+                  <td colSpan="6">
+                    {loading
+                      ? "Loading transaction data..."
+                      : "No analytics data available."}
                   </td>
-
-                  <td>
-                    {alert.transaction}
-                  </td>
-
-                  <td>
-                    {alert.customer}
-                  </td>
-
-                  <td>
-
-                    <span
-                      className={`risk-badge ${
-                        alert.risk === "Critical"
-                          ? "high"
-                          : alert.risk.toLowerCase()
-                      }`}
-                    >
-                      {alert.risk}
-                    </span>
-
-                  </td>
-
-                  <td>
-
-                    <span
-                      className={`transaction-status ${
-                        alert.status.toLowerCase()
-                      }`}
-                    >
-                      {alert.status}
-                    </span>
-
-                  </td>
-
                 </tr>
 
-              ))}
+              )}
 
             </tbody>
 
           </table>
 
         </div>
+
+      </section>
+
+      {/* =========================================
+          DATA SOURCE STATUS
+      ========================================= */}
+
+      <section className="dashboard-card">
+
+        <div className="card-header">
+
+          <div>
+            <h2>Data Source</h2>
+
+            <p>
+              Dashboard analytics are retrieved from the FinGraph backend.
+            </p>
+          </div>
+
+          <span className="live-status">
+            {dashboardData ? "● Connected" : "● Waiting"}
+          </span>
+
+        </div>
+
+        <small>
+          API endpoint: /dashboard-overview
+        </small>
 
       </section>
 
