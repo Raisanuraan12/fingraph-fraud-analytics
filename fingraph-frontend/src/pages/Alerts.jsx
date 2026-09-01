@@ -1,110 +1,172 @@
 import { useEffect, useState } from "react";
 
+const API_BASE_URL = "http://127.0.0.1:8000";
+
 function Alerts() {
-  const defaultAlerts = [
-    {
-      id: "ALT-1001",
-      transaction: "TXN-78421",
-      customer: "Customer A",
-      amount: "₹2.4L",
-      risk: "Critical",
-      status: "Active",
-      description: "Unusual high-value transaction detected.",
-    },
-    {
-      id: "ALT-1002",
-      transaction: "TXN-78435",
-      customer: "Customer B",
-      amount: "₹85K",
-      risk: "High",
-      status: "Investigating",
-      description: "Multiple transactions detected from unusual location.",
-    },
-    {
-      id: "ALT-1003",
-      transaction: "TXN-78456",
-      customer: "Customer C",
-      amount: "₹42K",
-      risk: "Medium",
-      status: "Active",
-      description: "Transaction pattern differs from normal activity.",
-    },
-    {
-      id: "ALT-1004",
-      transaction: "TXN-78478",
-      customer: "Customer D",
-      amount: "₹1.2L",
-      risk: "High",
-      status: "Resolved",
-      description: "Suspicious account activity was reviewed.",
-    },
-  ];
-
-  // =========================
-  // ALERT STATE
-  // =========================
-
-  const [alerts, setAlerts] = useState(() => {
-    try {
-      const savedAlerts = localStorage.getItem("fraudAlerts");
-
-      return savedAlerts
-        ? JSON.parse(savedAlerts)
-        : defaultAlerts;
-    } catch (error) {
-      return defaultAlerts;
-    }
-  });
-
+  const [alerts, setAlerts] = useState([]);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
-  // =========================
-  // SAVE ALERTS
-  // =========================
-
-  useEffect(() => {
-    localStorage.setItem(
-      "fraudAlerts",
-      JSON.stringify(alerts)
-    );
-  }, [alerts]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   // =========================
-  // UPDATE STATUS
+  // FETCH ALERT NOTIFICATIONS
   // =========================
 
-  const updateStatus = (id, newStatus) => {
-    setAlerts((currentAlerts) =>
-      currentAlerts.map((alert) =>
-        alert.id === id
-          ? {
-              ...alert,
-              status: newStatus,
-            }
-          : alert
-      )
-    );
+  const fetchAlerts = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/alert-notifications`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Backend returned status ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+
+      /*
+       * The backend may return the alerts directly
+       * or inside an "alerts" property.
+       */
+      const apiAlerts = Array.isArray(data)
+        ? data
+        : Array.isArray(data.alerts)
+        ? data.alerts
+        : [];
+
+      setAlerts(apiAlerts);
+    } catch (err) {
+      console.error("Alert notification API error:", err);
+
+      setAlerts([]);
+
+      setError(
+        "Unable to load automated alerts. The backend or Neo4j connection may be unavailable."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   // =========================
-  // SEARCH + FILTER
+  // INITIAL LOAD
   // =========================
 
-  const filteredAlerts = alerts.filter((alert) => {
+  useEffect(() => {
+    fetchAlerts();
+  }, []);
+
+  // =========================
+  // NORMALIZE ALERT DATA
+  // =========================
+
+  const normalizeRisk = (alert) => {
+    const severity =
+      alert.alert_severity ||
+      alert.severity ||
+      alert.risk_severity ||
+      alert.risk_tier ||
+      "";
+
+    return String(severity).toUpperCase();
+  };
+
+  const getAlertId = (alert, index) =>
+    alert.alert_id ||
+    alert.id ||
+    `ALT-${String(index + 1).padStart(4, "0")}`;
+
+  const getTransactionId = (alert) =>
+    alert.txn_id ||
+    alert.transaction_id ||
+    alert.transaction ||
+    "N/A";
+
+  const getAccountId = (alert) =>
+    alert.account_id ||
+    alert.account ||
+    "N/A";
+
+  const getAmount = (alert) => {
+    const amount =
+      alert.amount ??
+      alert.txn_amount ??
+      alert.transaction_amount;
+
+    if (amount === undefined || amount === null) {
+      return "N/A";
+    }
+
+    return `₹${Number(amount).toLocaleString("en-IN")}`;
+  };
+
+  const getRiskScore = (alert) => {
+    const risk =
+      alert.risk_index ??
+      alert.risk_score ??
+      alert.risk;
+
+    if (risk === undefined || risk === null) {
+      return "N/A";
+    }
+
+    return typeof risk === "number"
+      ? risk <= 1
+        ? risk.toFixed(2)
+        : risk
+      : risk;
+  };
+
+  const getDescription = (alert) => {
+    if (alert.description) {
+      return alert.description;
+    }
+
+    if (alert.foreign_txn) {
+      return "Suspicious foreign transaction detected.";
+    }
+
+    if (alert.transactions_past_hour) {
+      return `Multiple transactions detected: ${alert.transactions_past_hour} in the past hour.`;
+    }
+
+    return "Suspicious transaction detected by FinGraph risk analytics.";
+  };
+
+  // =========================
+  // FILTER + SEARCH
+  // =========================
+
+  const preparedAlerts = alerts.map((alert, index) => ({
+    ...alert,
+    displayId: getAlertId(alert, index),
+    transaction: getTransactionId(alert),
+    account: getAccountId(alert),
+    amount: getAmount(alert),
+    risk: normalizeRisk(alert),
+    riskScore: getRiskScore(alert),
+    description: getDescription(alert),
+  }));
+
+  const filteredAlerts = preparedAlerts.filter((alert) => {
     const searchText = search.toLowerCase();
 
     const matchesSearch =
-      alert.id.toLowerCase().includes(searchText) ||
+      alert.displayId.toLowerCase().includes(searchText) ||
       alert.transaction.toLowerCase().includes(searchText) ||
-      alert.customer.toLowerCase().includes(searchText) ||
-      alert.risk.toLowerCase().includes(searchText) ||
-      alert.status.toLowerCase().includes(searchText);
+      alert.account.toLowerCase().includes(searchText) ||
+      alert.risk.toLowerCase().includes(searchText);
 
     const matchesFilter =
       filter === "All" ||
-      alert.risk === filter ||
-      alert.status === filter;
+      alert.risk === filter;
 
     return matchesSearch && matchesFilter;
   });
@@ -113,20 +175,22 @@ function Alerts() {
   // STATISTICS
   // =========================
 
-  const criticalCount = alerts.filter(
-    (alert) => alert.risk === "Critical"
+  const criticalCount = preparedAlerts.filter(
+    (alert) => alert.risk === "CRITICAL"
   ).length;
 
-  const highRiskCount = alerts.filter(
-    (alert) => alert.risk === "High"
+  const highRiskCount = preparedAlerts.filter(
+    (alert) => alert.risk === "HIGH"
   ).length;
 
-  const mediumRiskCount = alerts.filter(
-    (alert) => alert.risk === "Medium"
+  const mediumRiskCount = preparedAlerts.filter(
+    (alert) => alert.risk === "MEDIUM"
   ).length;
 
-  const resolvedCount = alerts.filter(
-    (alert) => alert.status === "Resolved"
+  const resolvedCount = preparedAlerts.filter(
+    (alert) =>
+      String(alert.status || "").toLowerCase() ===
+      "resolved"
   ).length;
 
   // =========================
@@ -134,15 +198,7 @@ function Alerts() {
   // =========================
 
   const getRiskClass = (risk) => {
-    return risk.toLowerCase();
-  };
-
-  // =========================
-  // STATUS CLASS
-  // =========================
-
-  const getStatusClass = (status) => {
-    return status.toLowerCase().replace(" ", "-");
+    return String(risk).toLowerCase();
   };
 
   // =========================
@@ -159,10 +215,10 @@ function Alerts() {
       <div className="page-header">
 
         <div>
-          <h2>Fraud Alerts</h2>
+          <h2>Automated Fraud Alerts</h2>
 
           <p>
-            Monitor active and suspicious fraud alerts.
+            Monitor risk-based alerts generated by FinGraph analytics.
           </p>
         </div>
 
@@ -213,24 +269,49 @@ function Alerts() {
       </div>
 
       {/* =========================
+          ERROR STATE
+      ========================== */}
+
+      {error && (
+        <div className="investigation-panel">
+
+          <div className="panel-header">
+
+            <div>
+              <h3>Alert Data Unavailable</h3>
+
+              <small>
+                {error}
+              </small>
+            </div>
+
+            <button
+              className="secondary-btn"
+              onClick={fetchAlerts}
+            >
+              Retry
+            </button>
+
+          </div>
+
+        </div>
+      )}
+
+      {/* =========================
           ALERT PANEL
       ========================== */}
 
       <div className="investigation-panel alerts-panel">
 
-        {/* PANEL HEADER */}
-
         <div className="panel-header">
 
           <div>
-            <h3>Active Fraud Alerts</h3>
+            <h3>Automated Alert Notifications</h3>
 
             <small>
-              Suspicious activities detected by FinGraph
+              Alerts retrieved from the FinGraph backend
             </small>
           </div>
-
-          {/* FILTER */}
 
           <select
             className="alert-filter"
@@ -243,175 +324,153 @@ function Alerts() {
               All Alerts
             </option>
 
-            <option value="Critical">
+            <option value="CRITICAL">
               Critical
             </option>
 
-            <option value="High">
+            <option value="HIGH">
               High Risk
             </option>
 
-            <option value="Medium">
+            <option value="MEDIUM">
               Medium Risk
             </option>
 
-            <option value="Active">
-              Active
-            </option>
-
-            <option value="Investigating">
-              Investigating
-            </option>
-
-            <option value="Resolved">
-              Resolved
+            <option value="LOW">
+              Low Risk
             </option>
           </select>
 
         </div>
 
         {/* =========================
-            ALERT TABLE
+            LOADING STATE
         ========================== */}
 
-        <div className="table-container">
+        {loading ? (
 
-          <table>
+          <div className="no-alerts">
 
-            <thead>
-              <tr>
-                <th>Alert ID</th>
-                <th>Transaction</th>
-                <th>Customer</th>
-                <th>Amount</th>
-                <th>Risk</th>
-                <th>Status</th>
-                <th>Description</th>
-                <th>Action</th>
-              </tr>
-            </thead>
+            <div>
+              <h3>
+                Loading automated alerts...
+              </h3>
 
-            <tbody>
+              <p>
+                Retrieving alert notifications from the backend.
+              </p>
+            </div>
 
-              {filteredAlerts.length > 0 ? (
+          </div>
 
-                filteredAlerts.map((alert) => (
+        ) : (
 
-                  <tr key={alert.id}>
+          <div className="table-container">
 
-                    <td>
-                      <strong>
-                        {alert.id}
-                      </strong>
-                    </td>
+            <table>
 
-                    <td>
-                      {alert.transaction}
-                    </td>
+              <thead>
 
-                    <td>
-                      {alert.customer}
-                    </td>
+                <tr>
+                  <th>Alert ID</th>
+                  <th>Transaction</th>
+                  <th>Account</th>
+                  <th>Amount</th>
+                  <th>Risk Score</th>
+                  <th>Severity</th>
+                  <th>Description</th>
+                </tr>
 
-                    <td>
-                      {alert.amount}
-                    </td>
+              </thead>
 
-                    <td>
-                      <span
-                        className={`risk-badge ${getRiskClass(
-                          alert.risk
-                        )}`}
-                      >
-                        {alert.risk}
-                      </span>
-                    </td>
+              <tbody>
 
-                    <td>
-                      <span
-                        className={`alert-status ${getStatusClass(
-                          alert.status
-                        )}`}
-                      >
-                        {alert.status}
-                      </span>
-                    </td>
+                {filteredAlerts.length > 0 ? (
 
-                    <td>
-                      <span className="alert-description">
-                        {alert.description}
-                      </span>
-                    </td>
+                  filteredAlerts.map((alert) => (
 
-                    <td>
+                    <tr key={alert.displayId}>
 
-                      {alert.status !== "Resolved" ? (
+                      <td>
+                        <strong>
+                          {alert.displayId}
+                        </strong>
+                      </td>
 
-                        <button
-                          className="secondary-btn alert-action-btn"
-                          onClick={() =>
-                            updateStatus(
-                              alert.id,
-                              alert.status ===
-                                "Active"
-                                ? "Investigating"
-                                : "Resolved"
-                            )
-                          }
+                      <td>
+                        {alert.transaction}
+                      </td>
+
+                      <td>
+                        {alert.account}
+                      </td>
+
+                      <td>
+                        {alert.amount}
+                      </td>
+
+                      <td>
+                        {alert.riskScore}
+                      </td>
+
+                      <td>
+
+                        <span
+                          className={`risk-badge ${getRiskClass(
+                            alert.risk
+                          )}`}
                         >
-                          {alert.status ===
-                          "Active"
-                            ? "Investigate"
-                            : "Resolve"}
-                        </button>
-
-                      ) : (
-
-                        <span className="resolved-label">
-                          ✓ Completed
+                          {alert.risk || "UNKNOWN"}
                         </span>
 
-                      )}
+                      </td>
+
+                      <td>
+                        <span className="alert-description">
+                          {alert.description}
+                        </span>
+                      </td>
+
+                    </tr>
+
+                  ))
+
+                ) : (
+
+                  <tr>
+
+                    <td
+                      colSpan="7"
+                      className="no-alerts"
+                    >
+
+                      <div>
+
+                        <span>🔔</span>
+
+                        <h3>
+                          No automated alerts found
+                        </h3>
+
+                        <p>
+                          No alerts match the current search or filter.
+                        </p>
+
+                      </div>
 
                     </td>
 
                   </tr>
 
-                ))
+                )}
 
-              ) : (
+              </tbody>
 
-                <tr>
+            </table>
 
-                  <td
-                    colSpan="8"
-                    className="no-alerts"
-                  >
-                    <div>
-                      <span>
-                        🔍
-                      </span>
+          </div>
 
-                      <h3>
-                        No alerts found
-                      </h3>
-
-                      <p>
-                        Try changing your search
-                        or filter.
-                      </p>
-                    </div>
-                  </td>
-
-                </tr>
-
-              )}
-
-            </tbody>
-
-          </table>
-
-        </div>
+        )}
 
       </div>
 

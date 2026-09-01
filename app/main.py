@@ -64,6 +64,24 @@ class ApiInfoResponse(BaseModel):
     total_endpoints: int
     endpoints: list[ApiEndpoint]
 
+    # =========================
+# Week 4 Day 2 - Automated Alert Models
+# =========================
+
+class AutomatedAlert(BaseModel):
+    alert_id: str
+    txn_id: str
+    account_id: str
+    risk_index: float
+    severity: str
+    message: str
+
+
+class AutomatedAlertResponse(BaseModel):
+    count: int
+    threshold: float
+    alerts: list[AutomatedAlert]
+
 
 # Day 8 - Fraud Analytics Models
 class FraudTransaction(BaseModel):
@@ -1516,5 +1534,149 @@ def get_dashboard_overview():
         raise HTTPException(
             status_code=500,
             detail=str(e)
+        )
+
+    # =========================
+# Week 4 Day 2 - Automated Alerts API
+# =========================
+
+@app.get("/automated-alerts", response_model=AutomatedAlertResponse)
+def get_automated_alerts(
+    min_risk: float = 0.80,
+    limit: int = 20
+):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+
+                WHERE t.risk_index >= $min_risk
+
+                RETURN
+                    t.txn_id AS txn_id,
+                    a.account_id AS account_id,
+                    t.risk_index AS risk_index
+
+                ORDER BY t.risk_index DESC
+
+                LIMIT $limit
+                """,
+                min_risk=min_risk,
+                limit=limit
+            )
+
+            alerts = []
+
+            for record in result:
+
+                risk_index = float(record["risk_index"])
+
+                if risk_index >= 0.90:
+                    severity = "CRITICAL"
+                elif risk_index >= 0.80:
+                    severity = "HIGH"
+                else:
+                    severity = "MEDIUM"
+
+                alert = {
+                    "alert_id": f"ALERT-{record['txn_id']}",
+                    "txn_id": record["txn_id"],
+                    "account_id": record["account_id"],
+                    "risk_index": risk_index,
+                    "severity": severity,
+                    "message": (
+                        f"{severity} risk transaction detected "
+                        f"for account {record['account_id']}"
+                    )
+                }
+
+                alerts.append(alert)
+
+            return {
+                "count": len(alerts),
+                "threshold": min_risk,
+                "alerts": alerts
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to generate automated alerts: {str(e)}"
+        )
+
+    # =========================
+# Week 4 Day 2 - Notification API
+# =========================
+
+@app.get("/alert-notifications")
+def get_alert_notifications(
+    min_risk: float = 0.80,
+    limit: int = 20
+):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+
+                WHERE t.risk_index >= $min_risk
+
+                RETURN
+                    t.txn_id AS txn_id,
+                    a.account_id AS account_id,
+                    t.risk_index AS risk_index,
+                    t.txn_amount AS amount,
+                    t.txn_datetime AS txn_datetime
+
+                ORDER BY t.risk_index DESC
+
+                LIMIT $limit
+                """,
+                min_risk=min_risk,
+                limit=limit
+            )
+
+            notifications = []
+
+            for record in result:
+
+                risk_index = float(record["risk_index"])
+
+                if risk_index >= 0.90:
+                    severity = "CRITICAL"
+                elif risk_index >= 0.80:
+                    severity = "HIGH"
+                else:
+                    severity = "MEDIUM"
+
+                notifications.append({
+                    "notification_type": "FRAUD_RISK_ALERT",
+                    "severity": severity,
+                    "account_id": record["account_id"],
+                    "txn_id": record["txn_id"],
+                    "risk_index": risk_index,
+                    "amount": record["amount"],
+                    "txn_datetime": record["txn_datetime"],
+                    "message": (
+                        f"{severity} fraud-risk alert: "
+                        f"Transaction {record['txn_id']} "
+                        f"for account {record['account_id']} "
+                        f"has risk index {risk_index:.2f}."
+                    )
+                })
+
+            return {
+                "count": len(notifications),
+                "threshold": min_risk,
+                "notifications": notifications
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to create alert notifications: {str(e)}"
         )
 
