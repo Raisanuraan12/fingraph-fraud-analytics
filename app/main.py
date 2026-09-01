@@ -1638,3 +1638,101 @@ def get_dashboard_analytics():
             status_code=500,
             detail=str(e)
         )
+
+# =========================
+# Alert & Notification System API
+# =========================
+
+@app.get("/alert-notifications")
+def get_alert_notifications(
+    limit: int = 20,
+    min_risk: float = 0.6
+):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+
+                WHERE t.fraud_label = 'suspicious'
+                  AND t.risk_index >= $min_risk
+
+                OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+                OPTIONAL MATCH (t)-[:OCCURRED_IN]->(l:Location)
+
+                RETURN
+                    t.txn_id AS txn_id,
+                    a.account_id AS account_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.risk_index AS risk_index,
+                    t.txn_datetime AS txn_datetime,
+                    m.merchant_type AS merchant_type,
+                    l.city AS city,
+
+                    CASE
+                        WHEN t.risk_index >= 0.80 THEN 'CRITICAL'
+                        WHEN t.risk_index >= 0.60 THEN 'HIGH'
+                        WHEN t.risk_index >= 0.30 THEN 'MEDIUM'
+                        ELSE 'LOW'
+                    END AS severity
+
+                ORDER BY t.risk_index DESC
+                LIMIT $limit
+                """,
+                limit=limit,
+                min_risk=min_risk
+            )
+
+            notifications = []
+
+            for record in result:
+                item = dict(record)
+
+                severity = item["severity"]
+                account_id = item["account_id"]
+                amount = item["amount"]
+                currency = item["currency"]
+                risk_index = item["risk_index"]
+
+                if severity == "CRITICAL":
+                    title = "Critical Fraud Alert"
+                elif severity == "HIGH":
+                    title = "High Risk Transaction Alert"
+                else:
+                    title = "Suspicious Transaction Alert"
+
+                message = (
+                    f"{severity} risk transaction detected "
+                    f"for account {account_id}. "
+                    f"Amount: {amount} {currency}. "
+                    f"Risk score: {risk_index}."
+                )
+
+                notifications.append({
+                    "txn_id": item["txn_id"],
+                    "account_id": account_id,
+                    "title": title,
+                    "message": message,
+                    "severity": severity,
+                    "risk_index": risk_index,
+                    "amount": amount,
+                    "currency": currency,
+                    "merchant_type": item["merchant_type"],
+                    "city": item["city"],
+                    "txn_datetime": item["txn_datetime"],
+                    "status": "unread"
+                })
+
+            return {
+                "count": len(notifications),
+                "min_risk": min_risk,
+                "notifications": notifications
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
