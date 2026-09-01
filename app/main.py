@@ -1518,3 +1518,123 @@ def get_dashboard_overview():
             detail=str(e)
         )
 
+
+# =========================
+# Day 16 - Dashboard Analytics API
+# =========================
+
+@app.get("/dashboard-analytics")
+def get_dashboard_analytics():
+    try:
+        with driver.session() as session:
+
+            # Risk distribution
+            risk_result = session.run(
+                """
+                MATCH (t:Transaction)
+
+                RETURN
+                    sum(CASE
+                        WHEN t.risk_index < 0.4
+                        THEN 1 ELSE 0
+                    END) AS low,
+
+                    sum(CASE
+                        WHEN t.risk_index >= 0.4
+                        AND t.risk_index < 0.8
+                        THEN 1 ELSE 0
+                    END) AS medium,
+
+                    sum(CASE
+                        WHEN t.risk_index >= 0.8
+                        THEN 1 ELSE 0
+                    END) AS high
+                """
+            )
+
+            risk_record = risk_result.single()
+
+            risk_distribution = {
+                "low": risk_record["low"],
+                "medium": risk_record["medium"],
+                "high": risk_record["high"]
+            }
+
+            # Fraud by payment channel
+            channel_result = session.run(
+                """
+                MATCH (t:Transaction)
+
+                RETURN
+                    t.payment_channel AS channel,
+                    count(t) AS total_transactions,
+                    sum(
+                        CASE
+                            WHEN t.fraud_label <> 'normal'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS suspicious_transactions
+
+                ORDER BY suspicious_transactions DESC
+                """
+            )
+
+            fraud_by_channel = [
+                dict(record)
+                for record in channel_result
+            ]
+
+            # Suspicious merchants
+            merchant_result = session.run(
+                """
+                MATCH (t:Transaction)-[:AT_MERCHANT]->(m:Merchant)
+
+                WHERE t.fraud_label <> 'normal'
+
+                RETURN
+                    m.merchant_type AS merchant_type,
+                    count(t) AS suspicious_transactions
+
+                ORDER BY suspicious_transactions DESC
+                LIMIT 10
+                """
+            )
+
+            suspicious_merchants = [
+                dict(record)
+                for record in merchant_result
+            ]
+
+            # Fraud trend
+            trend_result = session.run(
+                """
+                MATCH (t:Transaction)
+
+                WHERE t.fraud_label <> 'normal'
+
+                RETURN
+                    substring(t.txn_datetime, 0, 10) AS date,
+                    count(t) AS suspicious_transactions
+
+                ORDER BY date
+                """
+            )
+
+            fraud_trend = [
+                dict(record)
+                for record in trend_result
+            ]
+
+            return {
+                "risk_distribution": risk_distribution,
+                "fraud_by_channel": fraud_by_channel,
+                "suspicious_merchants": suspicious_merchants,
+                "fraud_trend": fraud_trend
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
