@@ -35,7 +35,8 @@ except FileNotFoundError:
     print(f"Error: The file '{csv_file_path}' was not found in your project folder.")
     df_final = None
 
-# 3. Stream Rows to Kafka with Updated Headers"""
+# 3. Stream Rows to Kafka with Updated Headers
+print("""
 Kafka Event Producer for Financial Transaction Data Streaming.
 Engineered by shubhamgawari9226 - Simulates real-time transaction events.
 """)
