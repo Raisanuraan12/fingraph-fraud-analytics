@@ -1,10 +1,13 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+const [alertData, setAlertData] = useState(null);
+const [loading, setLoading] = useState(true);
+const [alertLoading, setAlertLoading] = useState(true);
+const [error, setError] = useState("");
+const [alertError, setAlertError] = useState("");
 
   const fetchDashboardData = async () => {
     try {
@@ -12,7 +15,7 @@ function Dashboard() {
       setError("");
 
       const response = await fetch(
-        "http://127.0.0.1:8000/dashboard-overview"
+        "https://corn-guidance-penguin-probe.trycloudflare.com/dashboard-overview"
       );
 
       if (!response.ok) {
@@ -30,9 +33,36 @@ function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  const fetchAlertData = async () => {
+  try {
+    setAlertLoading(true);
+    setAlertError("");
+
+    const response = await fetch(
+      "https://accurate-sensitivity-catherine-themselves.trycloudflare.com/alert-notifications"
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to load alert notifications");
+    }
+
+    const data = await response.json();
+
+    setAlertData(data);
+  } catch (err) {
+    console.error("Alert API error:", err);
+    setAlertError("Unable to load automated alerts.");
+  } finally {
+    setAlertLoading(false);
+  }
+};
+
+
+
+ useEffect(() => {
+  fetchDashboardData();
+  fetchAlertData();
+}, []);
 
   const stats = dashboardData?.stats;
 
@@ -50,7 +80,7 @@ function Dashboard() {
         </div>
 
         <button className="user-button">
-          👤 Analyst
+          ðŸ‘¤ Analyst
         </button>
       </header>
 
@@ -98,7 +128,7 @@ function Dashboard() {
       <section className="stats-grid">
 
         <div className="stat-card">
-          <span>🚨 Total Accounts</span>
+          <span>ðŸš¨ Total Accounts</span>
           <h2>
             {stats?.total_accounts ?? "--"}
           </h2>
@@ -106,7 +136,7 @@ function Dashboard() {
         </div>
 
         <div className="stat-card">
-          <span>💳 Transactions</span>
+          <span>ðŸ’³ Transactions</span>
           <h2>
             {stats?.total_transactions ?? "--"}
           </h2>
@@ -114,7 +144,7 @@ function Dashboard() {
         </div>
 
         <div className="stat-card">
-          <span>⚠️ Fraud Transactions</span>
+          <span>âš ï¸ Fraud Transactions</span>
           <h2>
             {stats?.fraud_transactions ?? "--"}
           </h2>
@@ -122,94 +152,16 @@ function Dashboard() {
         </div>
 
         <div className="stat-card">
-          <span>🔴 High-Risk Transactions</span>
+          <span>ðŸ”´ High-Risk Transactions</span>
           <h2>
             {stats?.high_risk_transactions ?? "--"}
           </h2>
-          <small>Risk index ≥ 0.8</small>
+          <small>Risk index â‰¥ 0.8</small>
         </div>
 
       </section>
 
-      {/* =========================================
-          QUICK ACTIONS
-      ========================================= */}
-
-      <section className="dashboard-quick-actions">
-
-        <Link
-          to="/transactions"
-          className="dashboard-action-card"
-        >
-          <span className="dashboard-action-icon">
-            💳
-          </span>
-
-          <div>
-            <h3>Transactions</h3>
-            <p>Monitor financial activity</p>
-          </div>
-
-          <span className="dashboard-action-arrow">
-            →
-          </span>
-        </Link>
-
-        <Link
-          to="/investigations"
-          className="dashboard-action-card"
-        >
-          <span className="dashboard-action-icon">
-            🔎
-          </span>
-
-          <div>
-            <h3>Investigations</h3>
-            <p>Review suspicious cases</p>
-          </div>
-
-          <span className="dashboard-action-arrow">
-            →
-          </span>
-        </Link>
-
-        <Link
-          to="/alerts"
-          className="dashboard-action-card"
-        >
-          <span className="dashboard-action-icon">
-            🚨
-          </span>
-
-          <div>
-            <h3>Fraud Alerts</h3>
-            <p>Check active alerts</p>
-          </div>
-
-          <span className="dashboard-action-arrow">
-            →
-          </span>
-        </Link>
-
-        <Link
-          to="/fraud-network"
-          className="dashboard-action-card"
-        >
-          <span className="dashboard-action-icon">
-            🕸️
-          </span>
-
-          <div>
-            <h3>Fraud Network</h3>
-            <p>Explore suspicious connections</p>
-          </div>
-
-          <span className="dashboard-action-arrow">
-            →
-          </span>
-        </Link>
-
-      </section>
+      
 
       {/* =========================================
           DASHBOARD OVERVIEW
@@ -233,9 +185,13 @@ function Dashboard() {
               </p>
             </div>
 
-            <span className="live-status">
-              ● Live
-            </span>
+           <span className={`live-status ${error ? "status-unavailable" : ""}`}>
+  {loading
+    ? "â— Waiting"
+    : error
+    ? "â— Unavailable"
+    : "â— Live"}
+</span>
 
           </div>
 
@@ -353,7 +309,7 @@ function Dashboard() {
             to="/alerts"
             className="dashboard-view-all"
           >
-            View All →
+            View All â†’
           </Link>
 
         </div>
@@ -454,8 +410,12 @@ function Dashboard() {
           </div>
 
           <span className="live-status">
-            {dashboardData ? "● Connected" : "● Waiting"}
-          </span>
+  {loading
+    ? "â— Waiting"
+    : error
+    ? "â— Unavailable"
+    : "â— Connected"}
+</span>
 
         </div>
 
@@ -470,3 +430,4 @@ function Dashboard() {
 }
 
 export default Dashboard;
+
