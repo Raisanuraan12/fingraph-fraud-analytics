@@ -1736,3 +1736,68 @@ def get_alert_notifications(
             status_code=500,
             detail=str(e)
         )
+# =========================
+# Day 17 - Alert Notification Summary API
+# =========================
+
+@app.get("/alert-notification-summary")
+def get_alert_notification_summary():
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (t:Transaction)
+
+                WHERE t.fraud_label = 'suspicious'
+                  AND t.risk_index >= 0.30
+
+                RETURN
+                    count(t) AS total_notifications,
+
+                    sum(
+                        CASE
+                            WHEN t.risk_index >= 0.80
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS critical,
+
+                    sum(
+                        CASE
+                            WHEN t.risk_index >= 0.60
+                            AND t.risk_index < 0.80
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS high,
+
+                    sum(
+                        CASE
+                            WHEN t.risk_index >= 0.30
+                            AND t.risk_index < 0.60
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS medium
+                """
+            )
+
+            record = result.single()
+
+            return {
+                "total_notifications":
+                    record["total_notifications"],
+                "critical":
+                    record["critical"],
+                "high":
+                    record["high"],
+                "medium":
+                    record["medium"]
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
