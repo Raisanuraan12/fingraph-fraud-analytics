@@ -1680,3 +1680,124 @@ def get_alert_notifications(
             detail=f"Unable to create alert notifications: {str(e)}"
         )
 
+# =========================
+# Day 4 - Fraud Network API
+# =========================
+
+@app.get("/fraud-network")
+def get_fraud_network(limit: int = 100):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)-[:MADE]->(t:Transaction)
+
+                OPTIONAL MATCH (t)-[:AT_MERCHANT]->(m:Merchant)
+                OPTIONAL MATCH (t)-[:OCCURRED_IN]->(l:Location)
+
+                RETURN
+                    a.account_id AS account_id,
+                    a.risk_score AS account_risk_score,
+                    a.risk_tier AS account_risk_tier,
+
+                    t.txn_id AS txn_id,
+                    t.txn_amount AS amount,
+                    t.txn_currency AS currency,
+                    t.fraud_label AS fraud_label,
+                    t.risk_index AS risk_index,
+
+                    m.merchant_type AS merchant_type,
+                    l.city AS city
+
+                ORDER BY t.risk_index DESC
+                LIMIT $limit
+                """,
+                limit=limit
+            )
+
+            records = [dict(record) for record in result]
+
+            nodes = {}
+            edges = []
+
+            for record in records:
+
+                account_id = record["account_id"]
+                txn_id = record["txn_id"]
+
+                # Account node
+                if account_id not in nodes:
+                    risk_score = record["account_risk_score"]
+
+                    if risk_score is None:
+                        risk_tier = "UNKNOWN"
+                    elif risk_score >= 80:
+                        risk_tier = "CRITICAL"
+                    elif risk_score >= 60:
+                        risk_tier = "HIGH"
+                    elif risk_score >= 30:
+                        risk_tier = "MEDIUM"
+                    else:
+                        risk_tier = "LOW"
+
+                    nodes[account_id] = {
+                        "id": account_id,
+                        "label": account_id,
+                        "type": "Account",
+                        "risk": risk_tier,
+                        "risk_score": risk_score
+                    }
+
+                # Transaction node
+                if txn_id not in nodes:
+
+                    risk_index = float(
+                        record["risk_index"] or 0
+                    )
+
+                    if risk_index >= 0.90:
+                        risk = "CRITICAL"
+                    elif risk_index >= 0.80:
+                        risk = "HIGH"
+                    elif risk_index >= 0.40:
+                        risk = "MEDIUM"
+                    else:
+                        risk = "LOW"
+
+                    nodes[txn_id] = {
+                        "id": txn_id,
+                        "label": (
+                            f"{record['currency'] or '₹'}"
+                            f"{record['amount'] or 0}"
+                        ),
+                        "type": "Transaction",
+                        "risk": risk,
+                        "risk_index": risk_index,
+                        "fraud_label": record["fraud_label"],
+                        "amount": record["amount"],
+                        "currency": record["currency"],
+                        "merchant_type": record["merchant_type"],
+                        "city": record["city"]
+                    }
+
+                # Account -> Transaction relationship
+                edges.append({
+                    "from": account_id,
+                    "to": txn_id,
+                    "label": "MADE"
+                })
+
+            return {
+                "source": "Neo4j",
+                "synthetic": False,
+                "count": len(nodes),
+                "nodes": list(nodes.values()),
+                "edges": edges
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unable to load fraud network: {str(e)}"
+        )

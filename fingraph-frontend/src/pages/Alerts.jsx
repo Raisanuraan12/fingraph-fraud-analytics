@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL =
+  "https://accurate-sensitivity-catherine-themselves.trycloudflare.com";
 
 function Alerts() {
   const [alerts, setAlerts] = useState([]);
@@ -20,7 +21,7 @@ function Alerts() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/alert-notifications`
+        `${API_BASE_URL}/investigation-alerts`
       );
 
       if (!response.ok) {
@@ -104,7 +105,7 @@ function Alerts() {
       return "N/A";
     }
 
-    return `₹${Number(amount).toLocaleString("en-IN")}`;
+    return `â‚¹${Number(amount).toLocaleString("en-IN")}`;
   };
 
   const getRiskScore = (alert) => {
@@ -243,25 +244,25 @@ function Alerts() {
       <div className="investigation-stats">
 
         <div className="info-card">
-          <span>🚨 Critical Alerts</span>
+          <span>ðŸš¨ Critical Alerts</span>
           <h3>{criticalCount}</h3>
           <small>Immediate attention</small>
         </div>
 
         <div className="info-card">
-          <span>⚠️ High Risk</span>
+          <span>âš ï¸ High Risk</span>
           <h3>{highRiskCount}</h3>
           <small>Priority alerts</small>
         </div>
 
         <div className="info-card">
-          <span>🟡 Medium Risk</span>
+          <span>ðŸŸ¡ Medium Risk</span>
           <h3>{mediumRiskCount}</h3>
           <small>Requires review</small>
         </div>
 
         <div className="info-card">
-          <span>✅ Resolved</span>
+          <span>âœ… Resolved</span>
           <h3>{resolvedCount}</h3>
           <small>Resolved alerts</small>
         </div>
@@ -446,7 +447,7 @@ function Alerts() {
 
                       <div>
 
-                        <span>🔔</span>
+                        <span>ðŸ””</span>
 
                         <h3>
                           No automated alerts found
@@ -479,3 +480,4 @@ function Alerts() {
 }
 
 export default Alerts;
+

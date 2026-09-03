@@ -1,149 +1,193 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const API_BASE_URL =
+  "https://corn-guidance-penguin-probe.trycloudflare.com";
+
+function getRiskLevel(riskIndex) {
+  const value = Number(riskIndex);
+
+  if (value >= 0.8) return "High";
+  if (value >= 0.4) return "Medium";
+  return "Low";
+}
+
+function getStatus(fraudLabel, riskIndex) {
+  if (fraudLabel === "suspicious") {
+    return "Suspicious";
+  }
+
+  if (Number(riskIndex) >= 0.8) {
+    return "High Risk";
+  }
+
+  return "Normal";
+}
+
+function formatAmount(amount, currency) {
+  const value = Number(amount);
+
+  if (Number.isNaN(value)) {
+    return "-";
+  }
+
+  return `${currency || "USD"} ${value.toFixed(2)}`;
+}
+
+function formatDate(dateString) {
+  if (!dateString) {
+    return "-";
+  }
+
+  const date = new Date(dateString.replace(" ", "T"));
+
+  if (Number.isNaN(date.getTime())) {
+    return dateString;
+  }
+
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function Transactions() {
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState("All");
 
-  // Selected transaction for details
-  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState(null);
 
-  // Transaction data
-  const [transactions, setTransactions] = useState([
-    {
-      id: "TXN-78421",
-      customer: "Customer A",
-      amount: "₹2.4L",
-      date: "17 Aug 2026",
-      risk: "High",
-      status: "Suspicious",
-    },
-    {
-      id: "TXN-78435",
-      customer: "Customer B",
-      amount: "₹85K",
-      date: "17 Aug 2026",
-      risk: "Medium",
-      status: "Review",
-    },
-    {
-      id: "TXN-78456",
-      customer: "Customer C",
-      amount: "₹42K",
-      date: "16 Aug 2026",
-      risk: "Low",
-      status: "Completed",
-    },
-    {
-      id: "TXN-78472",
-      customer: "Customer D",
-      amount: "₹1.8L",
-      date: "16 Aug 2026",
-      risk: "High",
-      status: "Suspicious",
-    },
-    {
-      id: "TXN-78489",
-      customer: "Customer E",
-      amount: "₹65K",
-      date: "15 Aug 2026",
-      risk: "Medium",
-      status: "Review",
-    },
-    {
-      id: "TXN-78501",
-      customer: "Customer F",
-      amount: "₹28K",
-      date: "15 Aug 2026",
-      risk: "Low",
-      status: "Completed",
-    },
-    {
-      id: "TXN-78518",
-      customer: "Customer G",
-      amount: "₹3.1L",
-      date: "14 Aug 2026",
-      risk: "High",
-      status: "Blocked",
-    },
-    {
-      id: "TXN-78524",
-      customer: "Customer H",
-      amount: "₹18K",
-      date: "14 Aug 2026",
-      risk: "Low",
-      status: "Completed",
-    },
-  ]);
+  const [transactions, setTransactions] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // =========================================
+  // FETCH REAL BACKEND TRANSACTIONS
+  // =========================================
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const response = await fetch(
+          `${API_BASE_URL}/transactions?page=1&limit=100`
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch transactions (${response.status})`
+          );
+        }
+
+        const data = await response.json();
+
+        const mappedTransactions = (
+          data.transactions || []
+        ).map((item) => ({
+          id: item.txn_id,
+          accountId: item.account_id,
+          amount: formatAmount(
+            item.amount,
+            item.currency
+          ),
+          rawAmount: Number(item.amount),
+          currency: item.currency,
+          channel: item.channel,
+          date: formatDate(item.txn_datetime),
+          rawDate: item.txn_datetime,
+          risk: getRiskLevel(item.risk_index),
+          riskIndex: Number(item.risk_index),
+          fraudLabel: item.fraud_label,
+          status: getStatus(
+            item.fraud_label,
+            item.risk_index
+          ),
+        }));
+
+        setTransactions(mappedTransactions);
+      } catch (err) {
+        console.error("Transaction API error:", err);
+        setError(
+          err.message ||
+            "Unable to load transaction data."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
 
   // =========================================
   // FILTER TRANSACTIONS
   // =========================================
 
-  const filteredTransactions = transactions.filter((item) => {
-    const searchText = search.toLowerCase().trim();
+  const filteredTransactions =
+    transactions.filter((item) => {
+      const searchText =
+        search.toLowerCase().trim();
 
-    const matchesSearch =
-      item.id.toLowerCase().includes(searchText) ||
-      item.customer.toLowerCase().includes(searchText) ||
-      item.amount.toLowerCase().includes(searchText);
+      const matchesSearch =
+        item.id
+          .toLowerCase()
+          .includes(searchText) ||
+        item.accountId
+          .toLowerCase()
+          .includes(searchText) ||
+        item.amount
+          .toLowerCase()
+          .includes(searchText) ||
+        item.channel
+          .toLowerCase()
+          .includes(searchText);
 
-    const matchesRisk =
-      riskFilter === "All" ||
-      item.risk === riskFilter;
+      const matchesRisk =
+        riskFilter === "All" ||
+        item.risk === riskFilter;
 
-    const matchesStatus =
-      statusFilter === "All" ||
-      item.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "All" ||
+        item.status === statusFilter;
 
-    return (
-      matchesSearch &&
-      matchesRisk &&
-      matchesStatus
-    );
-  });
+      return (
+        matchesSearch &&
+        matchesRisk &&
+        matchesStatus
+      );
+    });
 
   // =========================================
   // STATISTICS
   // =========================================
 
-  const highRiskCount = transactions.filter(
-    (item) => item.risk === "High"
-  ).length;
+  const totalTransactions =
+    transactions.length;
 
-  const suspiciousCount = transactions.filter(
-    (item) => item.status === "Suspicious"
-  ).length;
+  const suspiciousCount =
+    transactions.filter(
+      (item) =>
+        item.fraudLabel === "suspicious"
+    ).length;
 
-  const blockedCount = transactions.filter(
-    (item) => item.status === "Blocked"
-  ).length;
+  const highRiskCount =
+    transactions.filter(
+      (item) => item.risk === "High"
+    ).length;
 
-  // =========================================
-  // INVESTIGATE TRANSACTION
-  // =========================================
-
-  const handleInvestigate = (transactionId) => {
-    setTransactions((currentTransactions) =>
-      currentTransactions.map((item) =>
-        item.id === transactionId
-          ? {
-              ...item,
-              status: "Review",
-            }
-          : item
-      )
-    );
-
-    setSelectedTransaction((currentTransaction) =>
-      currentTransaction
-        ? {
-            ...currentTransaction,
-            status: "Review",
-          }
-        : null
-    );
-  };
+  // Real backend /transactions currently
+  // does not provide blocked status.
+  const blockedCount =
+    transactions.filter(
+      (item) => item.status === "Blocked"
+    ).length;
 
   // =========================================
   // VIEW DETAILS
@@ -168,9 +212,7 @@ function Transactions() {
   return (
     <div className="page-container">
 
-      {/* =====================================
-          PAGE HEADER
-      ====================================== */}
+      {/* PAGE HEADER */}
 
       <div className="page-header">
 
@@ -195,29 +237,35 @@ function Transactions() {
 
       </div>
 
-      {/* =====================================
-          STATISTICS
-      ====================================== */}
+      {/* STATISTICS */}
 
       <div className="investigation-stats">
 
         <div className="info-card">
-          <span>💳 Total Transactions</span>
+          <span>
+            💳 Total Transactions
+          </span>
 
           <h3>
-            {transactions.length}
+            {loading
+              ? "..."
+              : totalTransactions}
           </h3>
 
           <small>
-            Transactions monitored
+            Transactions loaded
           </small>
         </div>
 
         <div className="info-card">
-          <span>⚠️ Suspicious</span>
+          <span>
+            ⚠️ Suspicious
+          </span>
 
           <h3>
-            {suspiciousCount}
+            {loading
+              ? "..."
+              : suspiciousCount}
           </h3>
 
           <small>
@@ -226,10 +274,14 @@ function Transactions() {
         </div>
 
         <div className="info-card">
-          <span>🔴 High Risk</span>
+          <span>
+            🔴 High Risk
+          </span>
 
           <h3>
-            {highRiskCount}
+            {loading
+              ? "..."
+              : highRiskCount}
           </h3>
 
           <small>
@@ -238,10 +290,14 @@ function Transactions() {
         </div>
 
         <div className="info-card">
-          <span>🚫 Blocked</span>
+          <span>
+            🚫 Blocked
+          </span>
 
           <h3>
-            {blockedCount}
+            {loading
+              ? "..."
+              : blockedCount}
           </h3>
 
           <small>
@@ -251,9 +307,7 @@ function Transactions() {
 
       </div>
 
-      {/* =====================================
-          TRANSACTION PANEL
-      ====================================== */}
+      {/* TRANSACTION PANEL */}
 
       <div className="investigation-panel transactions-panel">
 
@@ -265,13 +319,11 @@ function Transactions() {
             </h3>
 
             <small>
-              Review and monitor transaction activity
+              Real transaction data from FinGraph backend
             </small>
           </div>
 
-          {/* =================================
-              FILTERS
-          ================================== */}
+          {/* FILTERS */}
 
           <div className="transaction-filters">
 
@@ -314,12 +366,12 @@ function Transactions() {
                 Suspicious
               </option>
 
-              <option value="Review">
-                Review
+              <option value="High Risk">
+                High Risk
               </option>
 
-              <option value="Completed">
-                Completed
+              <option value="Normal">
+                Normal
               </option>
 
               <option value="Blocked">
@@ -331,154 +383,159 @@ function Transactions() {
 
         </div>
 
-        {/* =====================================
-            TABLE
-        ====================================== */}
+        {/* ERROR */}
 
-        <div className="table-container">
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
 
-          <table>
+        {/* LOADING */}
 
-            <thead>
+        {loading ? (
+          <div className="no-transactions">
+            Loading transactions...
+          </div>
+        ) : (
 
-              <tr>
-                <th>Transaction ID</th>
-                <th>Customer</th>
-                <th>Amount</th>
-                <th>Date</th>
-                <th>Risk</th>
-                <th>Status</th>
-                <th>Action</th>
-              </tr>
+          <div className="table-container">
 
-            </thead>
+            <table>
 
-            <tbody>
-
-              {filteredTransactions.length > 0 ? (
-
-                filteredTransactions.map(
-                  (item) => (
-
-                    <tr key={item.id}>
-
-                      {/* Transaction ID */}
-
-                      <td>
-                        <strong>
-                          {item.id}
-                        </strong>
-                      </td>
-
-                      {/* Customer */}
-
-                      <td>
-                        {item.customer}
-                      </td>
-
-                      {/* Amount */}
-
-                      <td>
-                        {item.amount}
-                      </td>
-
-                      {/* Date */}
-
-                      <td>
-                        {item.date}
-                      </td>
-
-                      {/* Risk */}
-
-                      <td>
-
-                        <span
-                          className={`risk-badge ${item.risk.toLowerCase()}`}
-                        >
-                          {item.risk}
-                        </span>
-
-                      </td>
-
-                      {/* Status */}
-
-                      <td>
-
-                        <span
-                          className={`transaction-status ${item.status.toLowerCase()}`}
-                        >
-                          {item.status}
-                        </span>
-
-                      </td>
-
-                      {/* Actions */}
-
-                      <td>
-
-                        <div className="transaction-actions">
-
-                          <button
-                            type="button"
-                            className="transaction-view-btn"
-                            onClick={() =>
-                              handleViewDetails(item)
-                            }
-                          >
-                            View
-                          </button>
-
-                          {item.status !== "Completed" &&
-                            item.status !== "Blocked" && (
-
-                              <button
-                                type="button"
-                                className="transaction-investigate-btn"
-                                onClick={() =>
-                                  handleInvestigate(item.id)
-                                }
-                              >
-                                Investigate
-                              </button>
-
-                            )}
-
-                        </div>
-
-                      </td>
-
-                    </tr>
-
-                  )
-
-                )
-
-              ) : (
+              <thead>
 
                 <tr>
-
-                  <td
-                    colSpan="7"
-                    className="no-transactions"
-                  >
-                    🔍 No transactions found.
-                  </td>
-
+                  <th>Transaction ID</th>
+                  <th>Account</th>
+                  <th>Amount</th>
+                  <th>Date</th>
+                  <th>Channel</th>
+                  <th>Risk</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
 
-              )}
+              </thead>
 
-            </tbody>
+              <tbody>
 
-          </table>
+                {filteredTransactions.length > 0 ? (
 
-        </div>
+                  filteredTransactions.map(
+                    (item) => (
+
+                      <tr key={item.id}>
+
+                        {/* TRANSACTION ID */}
+
+                        <td>
+                          <strong>
+                            {item.id}
+                          </strong>
+                        </td>
+
+                        {/* ACCOUNT */}
+
+                        <td>
+                          {item.accountId}
+                        </td>
+
+                        {/* AMOUNT */}
+
+                        <td>
+                          {item.amount}
+                        </td>
+
+                        {/* DATE */}
+
+                        <td>
+                          {item.date}
+                        </td>
+
+                        {/* CHANNEL */}
+
+                        <td>
+                          {item.channel}
+                        </td>
+
+                        {/* RISK */}
+
+                        <td>
+
+                          <span
+                            className={`risk-badge ${item.risk.toLowerCase()}`}
+                          >
+                            {item.risk}
+                          </span>
+
+                        </td>
+
+                        {/* STATUS */}
+
+                        <td>
+
+                          <span
+                            className={`transaction-status ${item.status
+                              .toLowerCase()
+                              .replace(" ", "-")}`}
+                          >
+                            {item.status}
+                          </span>
+
+                        </td>
+
+                        {/* ACTION */}
+
+                        <td>
+
+                          <div className="transaction-actions">
+
+                            <button
+                              type="button"
+                              className="transaction-view-btn"
+                              onClick={() =>
+                                handleViewDetails(item)
+                              }
+                            >
+                              View
+                            </button>
+
+                          </div>
+
+                        </td>
+
+                      </tr>
+
+                    )
+                  )
+
+                ) : (
+
+                  <tr>
+
+                    <td
+                      colSpan="8"
+                      className="no-transactions"
+                    >
+                      🔍 No transactions found.
+                    </td>
+
+                  </tr>
+
+                )}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        )}
 
       </div>
 
-      {/* =====================================
-          TRANSACTION DETAILS MODAL
-      ====================================== */}
+      {/* TRANSACTION DETAILS MODAL */}
 
       {selectedTransaction && (
 
@@ -494,11 +551,12 @@ function Transactions() {
             }
           >
 
-            {/* Modal Header */}
+            {/* MODAL HEADER */}
 
             <div className="transaction-modal-header">
 
               <div>
+
                 <h3>
                   Transaction Details
                 </h3>
@@ -506,6 +564,7 @@ function Transactions() {
                 <small>
                   Complete transaction information
                 </small>
+
               </div>
 
               <button
@@ -518,7 +577,7 @@ function Transactions() {
 
             </div>
 
-            {/* Transaction Icon */}
+            {/* TRANSACTION ICON */}
 
             <div className="transaction-detail-icon">
               💳
@@ -528,76 +587,117 @@ function Transactions() {
               {selectedTransaction.id}
             </h2>
 
-            {/* Details */}
+            {/* DETAILS */}
 
             <div className="transaction-detail-list">
 
               <div className="transaction-detail-row">
-                <span>Customer</span>
+
+                <span>
+                  Account
+                </span>
 
                 <strong>
-                  {selectedTransaction.customer}
+                  {selectedTransaction.accountId}
                 </strong>
+
               </div>
 
               <div className="transaction-detail-row">
-                <span>Amount</span>
+
+                <span>
+                  Amount
+                </span>
 
                 <strong>
                   {selectedTransaction.amount}
                 </strong>
+
               </div>
 
               <div className="transaction-detail-row">
-                <span>Date</span>
+
+                <span>
+                  Date
+                </span>
 
                 <strong>
                   {selectedTransaction.date}
                 </strong>
+
               </div>
 
               <div className="transaction-detail-row">
-                <span>Risk Level</span>
+
+                <span>
+                  Channel
+                </span>
+
+                <strong>
+                  {selectedTransaction.channel}
+                </strong>
+
+              </div>
+
+              <div className="transaction-detail-row">
+
+                <span>
+                  Risk Index
+                </span>
+
+                <strong>
+                  {selectedTransaction.riskIndex.toFixed(3)}
+                </strong>
+
+              </div>
+
+              <div className="transaction-detail-row">
+
+                <span>
+                  Risk Level
+                </span>
 
                 <span
                   className={`risk-badge ${selectedTransaction.risk.toLowerCase()}`}
                 >
                   {selectedTransaction.risk}
                 </span>
+
               </div>
 
               <div className="transaction-detail-row">
-                <span>Status</span>
+
+                <span>
+                  Fraud Label
+                </span>
+
+                <strong>
+                  {selectedTransaction.fraudLabel}
+                </strong>
+
+              </div>
+
+              <div className="transaction-detail-row">
+
+                <span>
+                  Status
+                </span>
 
                 <span
-                  className={`transaction-status ${selectedTransaction.status.toLowerCase()}`}
+                  className={`transaction-status ${selectedTransaction.status
+                    .toLowerCase()
+                    .replace(" ", "-")}`}
                 >
                   {selectedTransaction.status}
                 </span>
+
               </div>
 
             </div>
 
-            {/* Modal Actions */}
+            {/* MODAL ACTIONS */}
 
             <div className="transaction-modal-actions">
-
-              {selectedTransaction.status !== "Completed" &&
-                selectedTransaction.status !== "Blocked" && (
-
-                  <button
-                    type="button"
-                    className="transaction-investigate-btn"
-                    onClick={() =>
-                      handleInvestigate(
-                        selectedTransaction.id
-                      )
-                    }
-                  >
-                    🔎 Investigate
-                  </button>
-
-                )}
 
               <button
                 type="button"
