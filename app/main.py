@@ -1801,3 +1801,59 @@ def get_alert_notification_summary():
             status_code=500,
             detail=str(e)
         )
+
+# =========================
+# Day 18 - Account Risk Scores API
+# =========================
+
+@app.get("/account-risk-scores")
+def get_account_risk_scores(
+    limit: int = 20,
+    min_score: int = 0
+):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (a:Account)
+                WHERE a.account_id IS NOT NULL
+                  AND a.risk_score IS NOT NULL
+                  AND a.risk_score >= $min_score
+
+                RETURN
+                    a.account_id AS account_id,
+                    a.risk_score AS risk_score,
+                    a.risk_tier AS risk_tier,
+                    a.last_risk_calculated AS last_risk_calculated
+
+                ORDER BY a.risk_score DESC, a.account_id
+                LIMIT $limit
+                """,
+                limit=limit,
+                min_score=min_score
+            )
+
+            accounts = []
+
+            for record in result:
+                account = dict(record)
+
+                if account["last_risk_calculated"] is not None:
+                    account["last_risk_calculated"] = str(
+                        account["last_risk_calculated"]
+                    )
+
+                accounts.append(account)
+
+            return {
+                "count": len(accounts),
+                "min_score": min_score,
+                "accounts": accounts
+            }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
