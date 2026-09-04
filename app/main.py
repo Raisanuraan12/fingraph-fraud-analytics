@@ -1668,6 +1668,7 @@ def get_alert_notifications(
                     t.txn_currency AS currency,
                     t.risk_index AS risk_index,
                     t.txn_datetime AS txn_datetime,
+                    t.notification_status AS notification_status,
                     m.merchant_type AS merchant_type,
                     l.city AS city,
 
@@ -1722,7 +1723,7 @@ def get_alert_notifications(
                     "merchant_type": item["merchant_type"],
                     "city": item["city"],
                     "txn_datetime": item["txn_datetime"],
-                    "status": "unread"
+                    "status": item["notification_status"] or "unread"
                 })
 
             return {
@@ -1851,6 +1852,53 @@ def get_account_risk_scores(
                 "min_score": min_score,
                 "accounts": accounts
             }
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )
+
+# =========================
+# Day 19 - Alert Acknowledgement API
+# =========================
+
+@app.patch("/alert-notifications/{txn_id}/acknowledge")
+def acknowledge_alert(txn_id: str):
+    try:
+        with driver.session() as session:
+
+            result = session.run(
+                """
+                MATCH (t:Transaction {txn_id: $txn_id})
+                WHERE t.fraud_label <> 'normal'
+
+                SET t.notification_status = 'acknowledged',
+                    t.acknowledged_at = datetime()
+
+                RETURN
+                    t.txn_id AS txn_id,
+                    t.notification_status AS status,
+                    t.acknowledged_at AS acknowledged_at
+                """,
+                txn_id=txn_id
+            ).single()
+
+            if not result:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Fraud alert not found"
+                )
+
+            return {
+                "message": "Alert acknowledged successfully",
+                "txn_id": result["txn_id"],
+                "status": result["status"],
+                "acknowledged_at": str(result["acknowledged_at"])
+            }
+
+    except HTTPException:
+        raise
 
     except Exception as e:
         raise HTTPException(
