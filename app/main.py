@@ -1738,7 +1738,7 @@ def get_alert_notifications(
             detail=str(e)
         )
 # =========================
-# Day 17 - Alert Notification Summary API
+# Day 17 + Day 20 - Alert Notification Summary API
 # =========================
 
 @app.get("/alert-notification-summary")
@@ -1780,21 +1780,36 @@ def get_alert_notification_summary():
                             THEN 1
                             ELSE 0
                         END
-                    ) AS medium
+                    ) AS medium,
+
+                    sum(
+                        CASE
+                            WHEN t.notification_status = 'acknowledged'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS acknowledged,
+
+                    sum(
+                        CASE
+                            WHEN t.notification_status IS NULL
+                              OR t.notification_status = 'unread'
+                            THEN 1
+                            ELSE 0
+                        END
+                    ) AS unread
                 """
             )
 
             record = result.single()
 
             return {
-                "total_notifications":
-                    record["total_notifications"],
-                "critical":
-                    record["critical"],
-                "high":
-                    record["high"],
-                "medium":
-                    record["medium"]
+                "total_notifications": record["total_notifications"],
+                "critical": record["critical"],
+                "high": record["high"],
+                "medium": record["medium"],
+                "unread": record["unread"],
+                "acknowledged": record["acknowledged"]
             }
 
     except Exception as e:
@@ -1802,7 +1817,6 @@ def get_alert_notification_summary():
             status_code=500,
             detail=str(e)
         )
-
 # =========================
 # Day 18 - Account Risk Scores API
 # =========================
