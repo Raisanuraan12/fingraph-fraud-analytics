@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 
 function Dashboard() {
   const [dashboardData, setDashboardData] = useState(null);
-const [alertData, setAlertData] = useState(null);
-const [loading, setLoading] = useState(true);
-const [alertLoading, setAlertLoading] = useState(true);
-const [error, setError] = useState("");
-const [alertError, setAlertError] = useState("");
+  const [alertData, setAlertData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [alertLoading, setAlertLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [alertError, setAlertError] = useState("");
 
   const fetchDashboardData = async () => {
     try {
@@ -34,35 +34,33 @@ const [alertError, setAlertError] = useState("");
   };
 
   const fetchAlertData = async () => {
-  try {
-    setAlertLoading(true);
-    setAlertError("");
+    try {
+      setAlertLoading(true);
+      setAlertError("");
 
-    const response = await fetch(
-      "https://accurate-sensitivity-catherine-themselves.trycloudflare.com/alert-notifications"
-    );
+      const response = await fetch(
+        "https://accurate-sensitivity-catherine-themselves.trycloudflare.com/alert-notifications"
+      );
 
-    if (!response.ok) {
-      throw new Error("Failed to load alert notifications");
+      if (!response.ok) {
+        throw new Error("Failed to load alert notifications");
+      }
+
+      const data = await response.json();
+
+      setAlertData(data);
+    } catch (err) {
+      console.error("Alert API error:", err);
+      setAlertError("Unable to load automated alerts.");
+    } finally {
+      setAlertLoading(false);
     }
+  };
 
-    const data = await response.json();
-
-    setAlertData(data);
-  } catch (err) {
-    console.error("Alert API error:", err);
-    setAlertError("Unable to load automated alerts.");
-  } finally {
-    setAlertLoading(false);
-  }
-};
-
-
-
- useEffect(() => {
-  fetchDashboardData();
-  fetchAlertData();
-}, []);
+  useEffect(() => {
+    fetchDashboardData();
+    fetchAlertData();
+  }, []);
 
   const stats = dashboardData?.stats;
 
@@ -80,7 +78,7 @@ const [alertError, setAlertError] = useState("");
         </div>
 
         <button className="user-button">
-          ðŸ‘¤ Analyst
+          👤 Analyst
         </button>
       </header>
 
@@ -128,7 +126,7 @@ const [alertError, setAlertError] = useState("");
       <section className="stats-grid">
 
         <div className="stat-card">
-          <span>ðŸš¨ Total Accounts</span>
+          <span>🚨 Total Accounts</span>
           <h2>
             {stats?.total_accounts ?? "--"}
           </h2>
@@ -136,7 +134,7 @@ const [alertError, setAlertError] = useState("");
         </div>
 
         <div className="stat-card">
-          <span>ðŸ’³ Transactions</span>
+          <span>💳 Transactions</span>
           <h2>
             {stats?.total_transactions ?? "--"}
           </h2>
@@ -144,7 +142,7 @@ const [alertError, setAlertError] = useState("");
         </div>
 
         <div className="stat-card">
-          <span>âš ï¸ Fraud Transactions</span>
+          <span>⚠️ Fraud Transactions</span>
           <h2>
             {stats?.fraud_transactions ?? "--"}
           </h2>
@@ -152,16 +150,14 @@ const [alertError, setAlertError] = useState("");
         </div>
 
         <div className="stat-card">
-          <span>ðŸ”´ High-Risk Transactions</span>
+          <span>🔴 High-Risk Transactions</span>
           <h2>
             {stats?.high_risk_transactions ?? "--"}
           </h2>
-          <small>Risk index â‰¥ 0.8</small>
+          <small>Risk index ≥ 0.8</small>
         </div>
 
       </section>
-
-      
 
       {/* =========================================
           DASHBOARD OVERVIEW
@@ -185,13 +181,13 @@ const [alertError, setAlertError] = useState("");
               </p>
             </div>
 
-           <span className={`live-status ${error ? "status-unavailable" : ""}`}>
-  {loading
-    ? "â— Waiting"
-    : error
-    ? "â— Unavailable"
-    : "â— Live"}
-</span>
+            <span className={`live-status ${error ? "status-unavailable" : ""}`}>
+              {loading
+                ? "● Waiting"
+                : error
+                ? "● Unavailable"
+                : "● Live"}
+            </span>
 
           </div>
 
@@ -309,7 +305,7 @@ const [alertError, setAlertError] = useState("");
             to="/alerts"
             className="dashboard-view-all"
           >
-            View All â†’
+            View All →
           </Link>
 
         </div>
@@ -410,12 +406,12 @@ const [alertError, setAlertError] = useState("");
           </div>
 
           <span className="live-status">
-  {loading
-    ? "â— Waiting"
-    : error
-    ? "â— Unavailable"
-    : "â— Connected"}
-</span>
+            {loading
+              ? "● Waiting"
+              : error
+              ? "● Unavailable"
+              : "● Connected"}
+          </span>
 
         </div>
 
@@ -430,4 +426,3 @@ const [alertError, setAlertError] = useState("");
 }
 
 export default Dashboard;
-

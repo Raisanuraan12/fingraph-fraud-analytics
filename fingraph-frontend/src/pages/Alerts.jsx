@@ -105,7 +105,7 @@ function Alerts() {
       return "N/A";
     }
 
-    return `â‚¹${Number(amount).toLocaleString("en-IN")}`;
+    return `₹${Number(amount).toLocaleString("en-IN")}`;
   };
 
   const getRiskScore = (alert) => {
@@ -244,25 +244,25 @@ function Alerts() {
       <div className="investigation-stats">
 
         <div className="info-card">
-          <span>ðŸš¨ Critical Alerts</span>
+          <span>🚨 Critical Alerts</span>
           <h3>{criticalCount}</h3>
           <small>Immediate attention</small>
         </div>
 
         <div className="info-card">
-          <span>âš ï¸ High Risk</span>
+          <span>⚠️ High Risk</span>
           <h3>{highRiskCount}</h3>
           <small>Priority alerts</small>
         </div>
 
         <div className="info-card">
-          <span>ðŸŸ¡ Medium Risk</span>
+          <span>🟡 Medium Risk</span>
           <h3>{mediumRiskCount}</h3>
           <small>Requires review</small>
         </div>
 
         <div className="info-card">
-          <span>âœ… Resolved</span>
+          <span>✅ Resolved</span>
           <h3>{resolvedCount}</h3>
           <small>Resolved alerts</small>
         </div>
@@ -447,7 +447,7 @@ function Alerts() {
 
                       <div>
 
-                        <span>ðŸ””</span>
+                        <span>🔔</span>
 
                         <h3>
                           No automated alerts found
@@ -480,4 +480,3 @@ function Alerts() {
 }
 
 export default Alerts;
-
